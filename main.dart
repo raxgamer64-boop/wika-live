@@ -524,7 +524,7 @@ class HomeScreen extends StatelessWidget {
                     SizedBox(width: 14),
                     Icon(Icons.search_rounded, color: Colors.white54),
                     SizedBox(width: 10),
-                    Text('Search hosts, rooms...', style: TextStyle(color: Colors.white45)),
+                    Text('Search hosts, rooms...', style: TextStyle(color: Colors.white54)),
                   ],
                 ),
               ),
