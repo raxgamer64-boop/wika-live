@@ -22,8 +22,6 @@ class WikaLiveApp extends StatelessWidget {
   }
 }
 
-// ==================== LOGIN / SIGNUP ====================
-
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
 
@@ -32,38 +30,34 @@ class AuthPage extends StatefulWidget {
 }
 
 class _AuthPageState extends State<AuthPage> {
-  bool isLogin = true;
+  bool loginMode = true;
   bool obscurePassword = true;
 
-  final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final nameController = TextEditingController();
 
   @override
   void dispose() {
-    nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    nameController.dispose();
     super.dispose();
   }
 
   void submit() {
     if (emailController.text.trim().isEmpty ||
         passwordController.text.trim().isEmpty ||
-        (!isLogin && nameController.text.trim().isEmpty)) {
+        (!loginMode && nameController.text.trim().isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all required fields'),
-        ),
+        const SnackBar(content: Text('Please fill all required fields')),
       );
       return;
     }
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => const HomePage(),
-      ),
+      MaterialPageRoute(builder: (_) => const HomePage()),
     );
   }
 
@@ -72,59 +66,39 @@ class _AuthPageState extends State<AuthPage> {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 50, 24, 30),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 55),
-              Center(
-                child: Container(
-                  width: 82,
-                  height: 82,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF171722),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: const Icon(
-                    Icons.favorite,
-                    size: 44,
-                  ),
-                ),
-              ),
               const SizedBox(height: 25),
-              const Center(
-                child: Text(
-                  'WikaLive',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
+              const Icon(Icons.play_circle_fill_rounded, size: 72),
+              const SizedBox(height: 14),
+              const Text(
+                'WikaLive',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  isLogin
-                      ? 'Login to continue'
-                      : 'Create your WikaLive account',
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 15,
-                  ),
+              Text(
+                loginMode
+                    ? 'Welcome back! Sign in to continue.'
+                    : 'Create your WikaLive account.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontSize: 15,
                 ),
               ),
-              const SizedBox(height: 40),
-
-              if (!isLogin) ...[
-                const Text(
-                  'Name',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
+              const SizedBox(height: 35),
+              if (!loginMode) ...[
                 TextField(
                   controller: nameController,
+                  textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
-                    hintText: 'Enter your name',
+                    labelText: 'Name',
                     prefixIcon: const Icon(Icons.person_outline),
                     filled: true,
                     fillColor: const Color(0xFF171722),
@@ -134,19 +108,14 @@ class _AuthPageState extends State<AuthPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
               ],
-
-              const Text(
-                'Email',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
-                  hintText: 'Enter your email',
+                  labelText: 'Email',
                   prefixIcon: const Icon(Icons.email_outlined),
                   filled: true,
                   fillColor: const Color(0xFF171722),
@@ -156,32 +125,25 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                 ),
               ),
-
-              const SizedBox(height: 18),
-
-              const Text(
-                'Password',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-
+              const SizedBox(height: 14),
               TextField(
                 controller: passwordController,
                 obscureText: obscurePassword,
+                onSubmitted: (_) => submit(),
                 decoration: InputDecoration(
-                  hintText: 'Enter your password',
+                  labelText: 'Password',
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
-                    icon: Icon(
-                      obscurePassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                    ),
                     onPressed: () {
                       setState(() {
                         obscurePassword = !obscurePassword;
                       });
                     },
+                    icon: Icon(
+                      obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
                   ),
                   filled: true,
                   fillColor: const Color(0xFF171722),
@@ -191,21 +153,13 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                 ),
               ),
-
-              const SizedBox(height: 28),
-
+              const SizedBox(height: 22),
               SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
+                height: 54,
+                child: FilledButton(
                   onPressed: submit,
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
                   child: Text(
-                    isLogin ? 'Login' : 'Create Account',
+                    loginMode ? 'Login' : 'Create Account',
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
@@ -213,21 +167,20 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    setState(() {
-                      isLogin = !isLogin;
-                    });
-                  },
-                  child: Text(
-                    isLogin
-                        ? 'Create a new account'
-                        : 'Already have an account? Login',
-                  ),
+              const SizedBox(height: 18),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    loginMode = !loginMode;
+                    emailController.clear();
+                    passwordController.clear();
+                    nameController.clear();
+                  });
+                },
+                child: Text(
+                  loginMode
+                      ? 'New here? Create an account'
+                      : 'Already have an account? Login',
                 ),
               ),
             ],
@@ -237,8 +190,6 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 }
-
-// ==================== HOME ====================
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -286,27 +237,26 @@ class _HomePageState extends State<HomePage> {
         children: const [
           HomeScreen(),
           LiveScreen(),
-          Center(
-            child: Text(
-              'Party',
-              style: TextStyle(fontSize: 30),
-            ),
-          ),
+          PartyScreen(),
           Center(
             child: Text(
               'Messages',
-              style: TextStyle(fontSize: 30),
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           MeScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
-        backgroundColor: const Color(0xFF11111A),
-        indicatorColor: const Color(0xFF29293A),
+        backgroundColor: const Color(0xFF11111B),
         selectedIndex: selected,
-        onDestinationSelected: (i) {
-          setState(() => selected = i);
+        onDestinationSelected: (index) {
+          setState(() {
+            selected = index;
+          });
         },
         destinations: const [
           NavigationDestination(
@@ -340,125 +290,572 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// ==================== HOME SCREEN ====================
+class PartyScreen extends StatelessWidget {
+  const PartyScreen({super.key});
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final List<Map<String, dynamic>> rooms = const [
+    {
+      'title': 'Night Vibes',
+      'host': 'Mia',
+      'members': 8,
+      'category': 'Chat',
+      'color': 0xFF5E35B1,
+    },
+    {
+      'title': 'Music Lounge',
+      'host': 'Luna',
+      'members': 6,
+      'category': 'Music',
+      'color': 0xFF7B1FA2,
+    },
+    {
+      'title': 'Friends Zone',
+      'host': 'Sofia',
+      'members': 10,
+      'category': 'Friends',
+      'color': 0xFF3949AB,
+    },
+    {
+      'title': 'Fun & Games',
+      'host': 'Emma',
+      'members': 5,
+      'category': 'Games',
+      'color': 0xFF00897B,
+    },
+    {
+      'title': 'Chill Room',
+      'host': 'Nina',
+      'members': 7,
+      'category': 'Chat',
+      'color': 0xFF6A1B9A,
+    },
+    {
+      'title': 'Late Night',
+      'host': 'Ava',
+      'members': 9,
+      'category': 'Talk',
+      'color': 0xFF4527A0,
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Welcome to WikaLive',
-            style: TextStyle(
-              fontSize: 27,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Watch live, join parties and connect with people.',
-            style: TextStyle(
-              color: Colors.white60,
-              fontSize: 15,
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          Row(
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+          child: Row(
             children: [
-              Expanded(
-                child: _MenuCard(
-                  icon: Icons.live_tv,
-                  title: 'Live',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const LiveScreen(),
-                      ),
-                    );
-                  },
+              const Text(
+                'Party Rooms',
+                style: TextStyle(
+                  fontSize: 27,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _MenuCard(
-                  icon: Icons.groups,
-                  title: 'Party',
-                  onTap: () {},
-                ),
+              const Spacer(),
+              IconButton(
+                onPressed: () {
+                  showSearch(
+                    context: context,
+                    delegate: PartySearchDelegate(rooms),
+                  );
+                },
+                icon: const Icon(Icons.search),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: const Color(0xFF171722),
+                    isScrollControlled: true,
+                    builder: (_) => const CreatePartySheet(),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Create'),
               ),
             ],
           ),
-
-          const SizedBox(height: 25),
-
-          const Text(
-            'Popular Live',
-            style: TextStyle(
-              fontSize: 21,
-              fontWeight: FontWeight.bold,
-            ),
+        ),
+        SizedBox(
+          height: 48,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            scrollDirection: Axis.horizontal,
+            children: const [
+              _PartyCategory(
+                text: 'All',
+                active: true,
+              ),
+              _PartyCategory(text: 'Popular'),
+              _PartyCategory(text: 'Music'),
+              _PartyCategory(text: 'Chat'),
+              _PartyCategory(text: 'Games'),
+            ],
           ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 25),
+            gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 0.86,
+            ),
+            itemCount: rooms.length,
+            itemBuilder: (context, index) {
+              final room = rooms[index];
 
-          const SizedBox(height: 14),
+              return _PartyRoomCard(
+                title: room['title'],
+                host: room['host'],
+                members: room['members'],
+                category: room['category'],
+                color: room['color'],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PartyRoomPage(
+                        title: room['title'],
+                        host: room['host'],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
 
-          SizedBox(
-            height: 190,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: 6,
-              itemBuilder: (context, index) {
-                return Container(
-                  width: 145,
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.deepPurple.shade700,
-                        Colors.black87,
-                      ],
+class _PartyCategory extends StatelessWidget {
+  final String text;
+  final bool active;
+
+  const _PartyCategory({
+    required this.text,
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(right: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: active
+            ? const Color(0xFF29263D)
+            : const Color(0xFF171722),
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.bold,
+          color: active ? Colors.white : Colors.white70,
+        ),
+      ),
+    );
+  }
+}
+
+class _PartyRoomCard extends StatelessWidget {
+  final String title;
+  final String host;
+  final int members;
+  final String category;
+  final int color;
+  final VoidCallback onTap;
+
+  const _PartyRoomCard({
+    required this.title,
+    required this.host,
+    required this.members,
+    required this.category,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(color),
+              const Color(0xFF0F0F18),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'PARTY',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
-                  child: Stack(
+                  const Spacer(),
+                  const Icon(
+                    Icons.groups,
+                    size: 20,
+                  ),
+                ],
+              ),
+              const Spacer(),
+              CircleAvatar(
+                radius: 31,
+                backgroundColor: Colors.white24,
+                child: const Icon(
+                  Icons.person,
+                  size: 38,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Host: $host',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.people_outline,
+                    size: 17,
+                    color: Colors.white70,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    '$members members',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    category,
+                    style: const TextStyle(
+                      color: Colors.white60,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PartyRoomPage extends StatefulWidget {
+  final String title;
+  final String host;
+
+  const PartyRoomPage({
+    super.key,
+    required this.title,
+    required this.host,
+  });
+
+  @override
+  State<PartyRoomPage> createState() => _PartyRoomPageState();
+}
+
+class _PartyRoomPageState extends State<PartyRoomPage> {
+  bool micOn = true;
+  bool speakerOn = true;
+
+  final messageController = TextEditingController();
+
+  final List<Map<String, String>> messages = [
+    {
+      'name': 'Mia',
+      'message': 'Welcome everyone! 👋',
+    },
+    {
+      'name': 'Luna',
+      'message': 'Hello guys ❤️',
+    },
+    {
+      'name': 'Sofia',
+      'message': 'Let’s have fun!',
+    },
+  ];
+
+  @override
+  void dispose() {
+    messageController.dispose();
+    super.dispose();
+  }
+
+  void sendMessage() {
+    final text = messageController.text.trim();
+
+    if (text.isEmpty) return;
+
+    setState(() {
+      messages.add({
+        'name': 'You',
+        'message': text,
+      });
+    });
+
+    messageController.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF080810),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF10101A),
+        title: Text(
+          widget.title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: const Color(0xFF171722),
+                builder: (_) => SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Positioned(
-                        left: 10,
-                        top: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'LIVE',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                      ListTile(
+                        leading: const Icon(Icons.report_outlined),
+                        title: const Text('Report room'),
+                        onTap: () => Navigator.pop(context),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.share_outlined),
+                        title: const Text('Share room'),
+                        onTap: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.more_vert),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF5E35B1),
+                  Color(0xFF171722),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'Party Room',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  widget.title,
+                  style: const TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Hosted by ${widget.host}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  height: 210,
+                  child: GridView.count(
+                    crossAxisCount: 4,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    children: [
+                      const _PartySeat(
+                        name: 'Host',
+                        icon: Icons.star,
+                        host: true,
+                      ),
+                      const _PartySeat(
+                        name: 'Luna',
+                        icon: Icons.person,
+                      ),
+                      const _PartySeat(
+                        name: 'Sofia',
+                        icon: Icons.person,
+                      ),
+                      const _PartySeat(
+                        name: 'Emma',
+                        icon: Icons.person,
+                      ),
+                      const _PartySeat(
+                        name: 'Nina',
+                        icon: Icons.person,
+                      ),
+                      const _PartySeat(
+                        name: 'Ava',
+                        icon: Icons.person,
+                      ),
+                      const _PartySeat(
+                        name: 'Empty',
+                        icon: Icons.add,
+                        empty: true,
+                      ),
+                      const _PartySeat(
+                        name: 'Empty',
+                        icon: Icons.add,
+                        empty: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Row(
+              children: [
+                const Text(
+                  'Live Chat',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      micOn = !micOn;
+                    });
+                  },
+                  icon: Icon(
+                    micOn ? Icons.mic : Icons.mic_off,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      speakerOn = !speakerOn;
+                    });
+                  },
+                  icon: Icon(
+                    speakerOn
+                        ? Icons.volume_up
+                        : Icons.volume_off,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                final item = messages[index];
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 17,
+                        backgroundColor: const Color(0xFF4D3A82),
+                        child: const Icon(
+                          Icons.person,
+                          size: 19,
                         ),
                       ),
-                      const Positioned(
-                        left: 12,
-                        bottom: 14,
-                        child: Text(
-                          'Live Host',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '${item['name']}  ',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              TextSpan(
+                                text: item['message'],
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -468,184 +865,476 @@ class HomeScreen extends StatelessWidget {
               },
             ),
           ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: messageController,
+                      decoration: InputDecoration(
+                        hintText: 'Say something...',
+                        filled: true,
+                        fillColor: const Color(0xFF171722),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(25),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    radius: 25,
+                    backgroundColor: const Color(0xFF5E35B1),
+                    child: IconButton(
+                      onPressed: sendMessage,
+                      icon: const Icon(Icons.send),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _MenuCard extends StatelessWidget {
+class _PartySeat extends StatelessWidget {
+  final String name;
   final IconData icon;
-  final String title;
-  final VoidCallback onTap;
+  final bool host;
+  final bool empty;
 
-  const _MenuCard({
+  const _PartySeat({
+    required this.name,
     required this.icon,
-    required this.title,
-    required this.onTap,
+    this.host = false,
+    this.empty = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Container(
-        height: 105,
-        decoration: BoxDecoration(
-          color: const Color(0xFF171722),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 34),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
+    return Column(
+      children: [
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: empty
+                  ? Colors.white10
+                  : host
+                      ? Colors.amber.withOpacity(0.22)
+                      : Colors.white10,
+              border: Border.all(
+                color: host ? Colors.amber : Colors.white12,
               ),
             ),
-          ],
+            child: Center(
+              child: Icon(
+                icon,
+                color: host
+                    ? Colors.amber
+                    : Colors.white70,
+                size: 26,
+              ),
+            ),
+          ),
         ),
+        const SizedBox(height: 5),
+        Text(
+          name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.white70,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class CreatePartySheet extends StatefulWidget {
+  const CreatePartySheet({super.key});
+
+  @override
+  State<CreatePartySheet> createState() => _CreatePartySheetState();
+}
+
+class _CreatePartySheetState extends State<CreatePartySheet> {
+  final titleController = TextEditingController();
+
+  String category = 'Chat';
+  bool publicRoom = true;
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 25,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Create Party',
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 18),
+          TextField(
+            controller: titleController,
+            decoration: InputDecoration(
+              labelText: 'Party name',
+              filled: true,
+              fillColor: const Color(0xFF10101A),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            value: category,
+            decoration: InputDecoration(
+              labelText: 'Category',
+              filled: true,
+              fillColor: const Color(0xFF10101A),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: 'Chat',
+                child: Text('Chat'),
+              ),
+              DropdownMenuItem(
+                value: 'Music',
+                child: Text('Music'),
+              ),
+              DropdownMenuItem(
+                value: 'Games',
+                child: Text('Games'),
+              ),
+              DropdownMenuItem(
+                value: 'Talk',
+                child: Text('Talk'),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                setState(() {
+                  category = value;
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 10),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Public room'),
+            value: publicRoom,
+            onChanged: (value) {
+              setState(() {
+                publicRoom = value;
+              });
+            },
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 52,
+            child: FilledButton(
+              onPressed: () {
+                if (titleController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Enter a party name'),
+                    ),
+                  );
+                  return;
+                }
+
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '${titleController.text.trim()} created',
+                    ),
+                  ),
+                );
+              },
+              child: const Text(
+                'Create Party',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ==================== LIVE SECTION ====================
+class PartySearchDelegate extends SearchDelegate<String> {
+  final List<Map<String, dynamic>> rooms;
+
+  PartySearchDelegate(this.rooms);
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      if (query.isNotEmpty)
+        IconButton(
+          onPressed: () => query = '',
+          icon: const Icon(Icons.clear),
+        ),
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      onPressed: () => close(context, ''),
+      icon: const Icon(Icons.arrow_back),
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    final result = rooms.where((room) {
+      final title = room['title'].toString().toLowerCase();
+      return title.contains(query.toLowerCase());
+    }).toList();
+
+    return _searchList(context, result);
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    final result = rooms.where((room) {
+      final title = room['title'].toString().toLowerCase();
+      return title.contains(query.toLowerCase());
+    }).toList();
+
+    return _searchList(context, result);
+  }
+
+  Widget _searchList(
+    BuildContext context,
+    List<Map<String, dynamic>> result,
+  ) {
+    if (result.isEmpty) {
+      return const Center(
+        child: Text('No party found'),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: result.length,
+      itemBuilder: (context, index) {
+        final room = result[index];
+
+        return ListTile(
+          leading: const CircleAvatar(
+            child: Icon(Icons.groups),
+          ),
+          title: Text(room['title']),
+          subtitle: Text(
+            'Hosted by ${room['host']}',
+          ),
+          onTap: () {
+            close(context, room['title']);
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PartyRoomPage(
+                  title: room['title'],
+                  host: room['host'],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
 
 class LiveScreen extends StatelessWidget {
   const LiveScreen({super.key});
 
-  static const hosts = [
-    ('Mia', '2.4K viewers'),
-    ('Luna', '1.8K viewers'),
-    ('Sofia', '3.1K viewers'),
-    ('Emma', '956 viewers'),
-    ('Nina', '1.2K viewers'),
-    ('Ava', '2.0K viewers'),
+  final List<Map<String, dynamic>> hosts = const [
+    {
+      'name': 'Mia',
+      'viewers': '2.4K',
+    },
+    {
+      'name': 'Luna',
+      'viewers': '1.8K',
+    },
+    {
+      'name': 'Sofia',
+      'viewers': '3.1K',
+    },
+    {
+      'name': 'Emma',
+      'viewers': '956',
+    },
+    {
+      'name': 'Nina',
+      'viewers': '1.2K',
+    },
+    {
+      'name': 'Ava',
+      'viewers': '780',
+    },
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0B0B12),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0B0B12),
-        title: const Text(
-          'Live',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 5, 18, 8),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.arrow_back),
+              ),
+              const Text(
+                'Live',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.search),
+              ),
+            ],
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search_rounded),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 42,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: const [
-                  _LiveCategory(
-                    title: 'For You',
-                    selected: true,
-                  ),
-                  _LiveCategory(title: 'Popular'),
-                  _LiveCategory(title: 'New'),
-                  _LiveCategory(title: 'PK'),
-                  _LiveCategory(title: 'Music'),
-                ],
+        SizedBox(
+          height: 52,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            children: const [
+              _LiveCategory(
+                text: 'For You',
+                active: true,
               ),
-            ),
-
-            const SizedBox(height: 20),
-
-            const Text(
+              _LiveCategory(text: 'Popular'),
+              _LiveCategory(text: 'New'),
+              _LiveCategory(text: 'PK'),
+              _LiveCategory(text: 'Music'),
+            ],
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(18, 18, 18, 12),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
               'Live Now',
               style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+                fontSize: 27,
+                fontWeight: FontWeight.w900,
               ),
             ),
-
-            const SizedBox(height: 14),
-
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: hosts.length,
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 14,
-                childAspectRatio: 0.72,
-              ),
-              itemBuilder: (context, index) {
-                final host = hosts[index];
-
-                return _LiveHostCard(
-                  name: host.$1,
-                  viewers: host.$2,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => LiveRoomPage(
-                          hostName: host.$1,
-                          viewers: host.$2,
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ],
+          ),
         ),
-      ),
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 25),
+            gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 0.72,
+            ),
+            itemCount: hosts.length,
+            itemBuilder: (context, index) {
+              final host = hosts[index];
+
+              return _LiveHostCard(
+                name: host['name'],
+                viewers: host['viewers'],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => LiveRoomPage(
+                        hostName: host['name'],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
 
 class _LiveCategory extends StatelessWidget {
-  final String title;
-  final bool selected;
+  final String text;
+  final bool active;
 
   const _LiveCategory({
-    required this.title,
-    this.selected = false,
+    required this.text,
+    this.active = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: selected
-            ? const Color(0xFF29293A)
+        color: active
+            ? const Color(0xFF29263D)
             : const Color(0xFF171722),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(28),
       ),
       child: Text(
-        title,
+        text,
         style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: selected ? Colors.white : Colors.white70,
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
+          color: active ? Colors.white : Colors.white70,
         ),
       ),
     );
@@ -666,106 +1355,97 @@ class _LiveHostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(24),
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.deepPurple.shade700,
-              const Color(0xFF11111A),
+              Color(0xFF5B2DC2),
+              Color(0xFF11111B),
             ],
           ),
+          borderRadius: BorderRadius.circular(24),
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: 10,
-              left: 10,
-              child: Container(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 5,
+                  horizontal: 12,
+                  vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.redAccent,
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Text(
                   'LIVE',
                   style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
-            ),
-
-            const Center(
-              child: CircleAvatar(
-                radius: 34,
-                child: Icon(
-                  Icons.person,
-                  size: 38,
+              const Spacer(),
+              Center(
+                child: Container(
+                  width: 86,
+                  height: 86,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFF543C96),
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    size: 45,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
-
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 12,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const Spacer(),
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Row(
                 children: [
+                  const Icon(
+                    Icons.visibility_outlined,
+                    size: 18,
+                    color: Colors.white70,
+                  ),
+                  const SizedBox(width: 5),
                   Text(
-                    name,
+                    '$viewers viewers',
                     style: const TextStyle(
-                      fontSize: 17,
+                      color: Colors.white70,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.visibility_outlined,
-                        size: 14,
-                        color: Colors.white60,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        viewers,
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ==================== LIVE ROOM ====================
-
 class LiveRoomPage extends StatefulWidget {
   final String hostName;
-  final String viewers;
 
   const LiveRoomPage({
     super.key,
     required this.hostName,
-    required this.viewers,
   });
 
   @override
@@ -775,61 +1455,82 @@ class LiveRoomPage extends StatefulWidget {
 class _LiveRoomPageState extends State<LiveRoomPage> {
   bool following = false;
 
-  final messageController = TextEditingController();
+  final chatController = TextEditingController();
+
+  final List<Map<String, String>> messages = [
+    {
+      'name': 'Luna',
+      'message': 'Hello everyone ❤️',
+    },
+    {
+      'name': 'Mia',
+      'message': 'Welcome to my live!',
+    },
+    {
+      'name': 'Sofia',
+      'message': 'Nice live 🔥',
+    },
+  ];
 
   @override
   void dispose() {
-    messageController.dispose();
+    chatController.dispose();
     super.dispose();
   }
 
   void sendMessage() {
-    if (messageController.text.trim().isEmpty) {
-      return;
-    }
+    final text = chatController.text.trim();
 
-    messageController.clear();
-    FocusScope.of(context).unfocus();
+    if (text.isEmpty) return;
+
+    setState(() {
+      messages.add({
+        'name': 'You',
+        'message': text,
+      });
+    });
+
+    chatController.clear();
   }
 
-  void openGifts() {
+  void showGifts() {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF171722),
       builder: (_) {
-        return const SafeArea(
+        final gifts = [
+          ['❤️', 'Heart', '10'],
+          ['🌹', 'Rose', '50'],
+          ['🎁', 'Gift', '100'],
+          ['💎', 'Diamond', '500'],
+        ];
+
+        return SafeArea(
           child: Padding(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                const Text(
                   'Send Gift',
                   style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 18),
                 Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _GiftItem(
-                      icon: Icons.favorite,
-                      name: 'Heart',
-                    ),
-                    _GiftItem(
-                      icon: Icons.star,
-                      name: 'Star',
-                    ),
-                    _GiftItem(
-                      icon: Icons.card_giftcard,
-                      name: 'Gift',
-                    ),
-                  ],
+                  children: gifts.map((gift) {
+                    return Expanded(
+                      child: _GiftItem(
+                        emoji: gift[0],
+                        name: gift[1],
+                        coins: gift[2],
+                      ),
+                    );
+                  }).toList(),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 10),
               ],
             ),
           ),
@@ -842,165 +1543,196 @@ class _LiveRoomPageState extends State<LiveRoomPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Stack(
+        child: Column(
           children: [
-            Positioned.fill(
+            Expanded(
+              flex: 5,
               child: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.deepPurple.shade800,
-                      const Color(0xFF09090E),
-                      Colors.black,
+                      Color(0xFF5B2DC2),
+                      Color(0xFF080810),
                     ],
                   ),
                 ),
-                child: const Center(
-                  child: Icon(
-                    Icons.person,
-                    size: 110,
-                    color: Colors.white24,
-                  ),
+                child: Stack(
+                  children: [
+                    const Center(
+                      child: Icon(
+                        Icons.person,
+                        size: 100,
+                        color: Colors.white30,
+                      ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      right: 12,
+                      child: Row(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'LIVE',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 15,
+                      child: Row(
+                        children: [
+                          const CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Colors.white24,
+                            child: Icon(
+                              Icons.person,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            widget.hostName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const Spacer(),
+                          OutlinedButton(
+                            onPressed: () {
+                              setState(() {
+                                following = !following;
+                              });
+                            },
+                            child: Text(
+                              following ? 'Following' : 'Follow',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-
-            Positioned(
-              top: 12,
-              left: 12,
-              right: 12,
-              child: Row(
-                children: [
-                  IconButton(
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black45,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  const CircleAvatar(
-                    radius: 20,
-                    child: Icon(Icons.person),
-                  ),
-
-                  const SizedBox(width: 10),
-
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.hostName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+            Expanded(
+              flex: 4,
+              child: Container(
+                color: const Color(0xFF0B0B12),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        14,
+                        10,
+                        14,
+                        5,
+                      ),
+                      child: Row(
+                        children: [
+                          const Text(
+                            'Live Chat',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        Text(
-                          widget.viewers,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
+                          const Spacer(),
+                          Text(
+                            '2.4K viewers',
+                            style: const TextStyle(
+                              color: Colors.white60,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        following = !following;
-                      });
-                    },
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.white12,
-                    ),
-                    child: Text(
-                      following ? 'Following' : 'Follow',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            Positioned(
-              left: 14,
-              right: 14,
-              bottom: 76,
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: const [
-                  _ChatMessage(
-                    name: 'Alex',
-                    message: 'Hello 👋',
-                  ),
-                  _ChatMessage(
-                    name: 'Sam',
-                    message: 'Nice live!',
-                  ),
-                ],
-              ),
-            ),
-
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 10,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Say something...',
-                        filled: true,
-                        fillColor: Colors.white12,
-                        border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding:
-                            const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 12,
-                        ),
+                        ],
                       ),
                     ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  IconButton(
-                    style: IconButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xFF29293A),
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                        ),
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          return _ChatMessage(
+                            name: messages[index]['name']!,
+                            message: messages[index]['message']!,
+                          );
+                        },
+                      ),
                     ),
-                    onPressed: sendMessage,
-                    icon: const Icon(Icons.send_rounded),
-                  ),
-
-                  const SizedBox(width: 4),
-
-                  IconButton(
-                    style: IconButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xFF29293A),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        12,
+                        5,
+                        12,
+                        12,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: chatController,
+                              decoration: InputDecoration(
+                                hintText: 'Say something...',
+                                filled: true,
+                                fillColor: const Color(0xFF171722),
+                                border: OutlineInputBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(25),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: showGifts,
+                            icon: const Icon(
+                              Icons.card_giftcard,
+                            ),
+                          ),
+                          CircleAvatar(
+                            backgroundColor:
+                                const Color(0xFF5E35B1),
+                            child: IconButton(
+                              onPressed: sendMessage,
+                              icon: const Icon(Icons.send),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    onPressed: openGifts,
-                    icon: const Icon(Icons.card_giftcard),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -1022,94 +1754,426 @@ class _ChatMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 7,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.black45,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text('$name: $message'),
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const CircleAvatar(
+            radius: 16,
+            backgroundColor: Color(0xFF493783),
+            child: Icon(
+              Icons.person,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$name  ',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextSpan(
+                    text: message,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _GiftItem extends StatelessWidget {
-  final IconData icon;
+  final String emoji;
   final String name;
+  final String coins;
 
   const _GiftItem({
-    required this.icon,
+    required this.emoji,
     required this.name,
+    required this.coins,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        CircleAvatar(
-          radius: 28,
-          child: Icon(
-            icon,
-            size: 28,
+        Text(
+          emoji,
+          style: const TextStyle(fontSize: 38),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          name,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 6),
-        Text(name),
+        const SizedBox(height: 3),
+        Text(
+          '$coins coins',
+          style: const TextStyle(
+            color: Colors.white60,
+            fontSize: 12,
+          ),
+        ),
       ],
     );
   }
 }
 
-// ==================== ME ====================
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 30),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Welcome to WikaLive',
+            style: TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Watch live, join parties and connect with people.',
+            style: TextStyle(
+              color: Colors.white60,
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 35),
+          Row(
+            children: [
+              Expanded(
+                child: _MenuCard(
+                  icon: Icons.live_tv,
+                  title: 'Live',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const StandaloneLivePage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _MenuCard(
+                  icon: Icons.groups,
+                  title: 'Party',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const StandalonePartyPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 50),
+          const Text(
+            'Popular Live',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 390,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _popularCard(context, 'Mia'),
+                _popularCard(context, 'Luna'),
+                _popularCard(context, 'Sofia'),
+                _popularCard(context, 'Emma'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _popularCard(
+    BuildContext context,
+    String name,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => LiveRoomPage(
+              hostName: name,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: 300,
+        margin: const EdgeInsets.only(right: 18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF5B2DC2),
+              Color(0xFF080810),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(26),
+        ),
+        child: Stack(
+          children: [
+            const Center(
+              child: Icon(
+                Icons.person,
+                size: 80,
+                color: Colors.white24,
+              ),
+            ),
+            Positioned(
+              top: 18,
+              left: 18,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'LIVE',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 20,
+              left: 20,
+              child: Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _MenuCard({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        height: 210,
+        decoration: BoxDecoration(
+          color: const Color(0xFF171722),
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 58,
+              color: Colors.white,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 25,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class StandaloneLivePage extends StatelessWidget {
+  const StandaloneLivePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: SafeArea(
+        child: LiveScreen(),
+      ),
+    );
+  }
+}
+
+class StandalonePartyPage extends StatelessWidget {
+  const StandalonePartyPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: SafeArea(
+        child: PartyScreen(),
+      ),
+    );
+  }
+}
 
 class MeScreen extends StatelessWidget {
   const MeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: const [
-        CircleAvatar(
-          radius: 48,
-          child: Icon(
-            Icons.person,
-            size: 50,
-          ),
-        ),
-
-        SizedBox(height: 14),
-
-        Center(
-          child: Text(
-            'WikaLive User',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 35),
+      child: Column(
+        children: [
+          const CircleAvatar(
+            radius: 48,
+            backgroundColor: Color(0xFF493783),
+            child: Icon(
+              Icons.person,
+              size: 55,
             ),
           ),
+          const SizedBox(height: 12),
+          const Text(
+            'Wika User',
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 5),
+          const Text(
+            '@wikauser',
+            style: TextStyle(
+              color: Colors.white60,
+            ),
+          ),
+          const SizedBox(height: 25),
+          Row(
+            children: const [
+              Expanded(
+                child: _ProfileStat(
+                  number: '0',
+                  label: 'Following',
+                ),
+              ),
+              Expanded(
+                child: _ProfileStat(
+                  number: '0',
+                  label: 'Followers',
+                ),
+              ),
+              Expanded(
+                child: _ProfileStat(
+                  number: '0',
+                  label: 'Gifts',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 25),
+          _ProfileButton(
+            icon: Icons.account_balance_wallet_outlined,
+            title: 'Wallet',
+            onTap: null,
+          ),
+          _ProfileButton(
+            icon: Icons.card_giftcard_outlined,
+            title: 'My Gifts',
+            onTap: null,
+          ),
+          _ProfileButton(
+            icon: Icons.settings_outlined,
+            title: 'Settings',
+            onTap: null,
+          ),
+          _ProfileButton(
+            icon: Icons.help_outline,
+            title: 'Help & Support',
+            onTap: null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileStat extends StatelessWidget {
+  final String number;
+  final String label;
+
+  const _ProfileStat({
+    required this.number,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          number,
+          style: const TextStyle(
+            fontSize: 21,
+            fontWeight: FontWeight.w900,
+          ),
         ),
-
-        SizedBox(height: 25),
-
-        _ProfileButton(
-          icon: Icons.account_balance_wallet_outlined,
-          title: 'Wallet',
-        ),
-
-        _ProfileButton(
-          icon: Icons.card_giftcard,
-          title: 'My Gifts',
-        ),
-
-        _ProfileButton(
-          icon: Icons.settings_outlined,
-          title: 'Settings',
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white60,
+            fontSize: 12,
+          ),
         ),
       ],
     );
@@ -1119,25 +2183,35 @@ class MeScreen extends StatelessWidget {
 class _ProfileButton extends StatelessWidget {
   final IconData icon;
   final String title;
+  final VoidCallback? onTap;
 
   const _ProfileButton({
     required this.icon,
     required this.title,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF171722),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: ListTile(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        tileColor: const Color(0xFF171722),
         leading: Icon(icon),
-        title: Text(title),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () {},
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: Colors.white54,
+        ),
+        onTap: onTap,
       ),
     );
   }
