@@ -16,21 +16,23 @@ jobs:
         with:
           channel: stable
 
-      - name: Prepare Flutter project
+      - name: Create Flutter project
         run: |
-          unzip -o WikaLive_v0.1.zip -d app
-          cd app
           flutter create .
-          cp ../main.dart lib/main.dart
+          cp main.dart lib/main.dart
           flutter pub get
+
+      - name: Verify AuthPage
+        run: |
+          grep -n "home: const AuthPage()" main.dart
+          grep -n "class AuthPage" main.dart
 
       - name: Build APK
         run: |
-          cd app
           flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: WikaLive-letest-APK
-          path: app/build/app/outputs/flutter-apk/app-release.apk
+          name: WikaLive-APK-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-release.apk
