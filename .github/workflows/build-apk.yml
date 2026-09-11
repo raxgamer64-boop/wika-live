@@ -1,0 +1,36 @@
+name: Build WikaLive APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Prepare Flutter project
+        run: |
+          unzip -o WikaLive_v0.1.zip -d app
+          cd app
+          flutter create .
+          cp ../main.dart lib/main.dart
+          flutter pub get
+
+      - name: Build APK
+        run: |
+          cd app
+          flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WikaLive-APK
+          path: app/build/app/outputs/flutter-apk/app-release.apk
