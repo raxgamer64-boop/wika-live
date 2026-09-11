@@ -16,7 +16,7 @@ jobs:
         with:
           channel: stable
 
-      - name: Create Flutter project
+      - name: flutter create --project-name wika_live .
         run: |
           flutter create .
           cp main.dart lib/main.dart
