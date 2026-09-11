@@ -563,7 +563,86 @@ class PartyScreen extends StatelessWidget {
   Widget _tabs() => Row(children: [_tab('Popular', true), _tab('PK Battle', false), _tab('🎟 Event', false), _tab('🇮🇳 🇧🇩', false)]);
   Widget _tab(String text, bool active) => Expanded(child: Container(margin: const EdgeInsets.only(right: 7), padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: active ? const Color(0xFFF0D9FF) : Colors.white, borderRadius: BorderRadius.circular(24)), child: Center(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: active ? const Color(0xFF9956E8) : Colors.black54, fontWeight: FontWeight.w900)))));
 
-  Widget _room(BuildContext context, List<String> r) => InkWell(onTap: () => openPage(context, PartyRoomPage(title: r[0])), borderRadius: BorderRadius.circular(20), child: Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 12, offset: Offset(0, 4))]), child: Row(children: [ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.network(r[4], width: 94, height: 94, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(width: 94, height: 94, color: const Color(0xFFE7D8F6), child: const Icon(Icons.groups, size: 40))), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('🇮🇳  ${r[0]}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), const SizedBox(height: 7), Text(r[1], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black45, fontSize: 14, fontWeight: FontWeight.w600)), const SizedBox(height: 12), Row(children: [_smallTag(r[3]), const Spacer(), Text('▮▮ ${r[2]}', style: const TextStyle(fontWeight: FontWeight.w900))]))]))]));
+  Widget _room(BuildContext context, List<String> r) {
+    return InkWell(
+      onTap: () => openPage(context, PartyRoomPage(title: r[0])),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x11000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.network(
+                r[4],
+                width: 94,
+                height: 94,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 94,
+                  height: 94,
+                  color: const Color(0xFFE7D8F6),
+                  child: const Icon(Icons.groups, size: 40),
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '🇮🇳  ${r[0]}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    r[1],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black45,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _smallTag(r[3]),
+                      const Spacer(),
+                      Text(
+                        '▮▮ ${r[2]}',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _smallTag(String t) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: const Color(0xFFFFE5F5), borderRadius: BorderRadius.circular(13)), child: Text(t, style: const TextStyle(color: Color(0xFFDA67B2), fontSize: 11, fontWeight: FontWeight.w800)));
   Widget _wideBanner(String a, String b) => Container(height: 86, margin: const EdgeInsets.only(top: 8), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF6B16C7), Color(0xFFB949D9)]), borderRadius: BorderRadius.circular(16)), child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(a, style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900)), Text(b, style: const TextStyle(color: Color(0xFFFFE15B), fontSize: 18, fontWeight: FontWeight.w900))])));
 }
@@ -584,7 +663,57 @@ class MomentsScreen extends StatelessWidget {
     ]));
   }
 
-  Widget _moment(String title, String subtitle, IconData icon) => Container(margin: const EdgeInsets.only(bottom: 14), padding: const EdgeInsets.all(18), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFF2E6FF), Colors.white]), borderRadius: BorderRadius.circular(20)), child: Row(children: [Container(width: 58, height: 58, decoration: BoxDecoration(color: const Color(0xFFE7CCFF), borderRadius: BorderRadius.circular(17)), child: Icon(icon, color: const Color(0xFF9B52E5), size: 31)), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)), const SizedBox(height: 5), Text(subtitle, style: const TextStyle(color: Colors.black45))]), const Icon(Icons.chevron_right_rounded)]));
+  Widget _moment(String title, String subtitle, IconData icon) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF2E6FF), Colors.white],
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE7CCFF),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: Icon(
+              icon,
+              color: const Color(0xFF9B52E5),
+              size: 31,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: Colors.black45),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded),
+        ],
+      ),
+    );
+  }
+
 }
 
 class MessagesScreen extends StatelessWidget {
@@ -625,7 +754,7 @@ class MeScreen extends StatelessWidget {
           const SizedBox(height: 14),
           Row(children: [const CircleAvatar(radius: 48, backgroundColor: Color(0xFFE8D5F8), child: Icon(Icons.person, size: 54)), const SizedBox(width: 17), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)), const SizedBox(height: 9), const Text('🇮🇳  ♀18   🏅11   💙0', style: TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 8), Text('ID: ${uid.substring(0, 8)}', style: const TextStyle(color: Colors.black38, fontWeight: FontWeight.w700))]))]),
           const SizedBox(height: 25),
-          const Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [_stat('0', 'Friends'), _stat('2', 'Follow'), _stat('0', 'Followers'), _stat('2', 'Visitors')]),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [_stat('0', 'Friends'), _stat('2', 'Follow'), _stat('0', 'Followers'), _stat('2', 'Visitors')]),
           const SizedBox(height: 22),
           _king(),
           const SizedBox(height: 14),
@@ -643,11 +772,75 @@ class MeScreen extends StatelessWidget {
 
   static Widget _stat(String n, String l) => Column(children: [Text(n, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)), const SizedBox(height: 7), Text(l, style: const TextStyle(color: Colors.black45, fontWeight: FontWeight.w700))]);
   Widget _king() => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF4A260A), Color(0xFF8A5B18)]), borderRadius: BorderRadius.circular(18)), child: Row(children: [const Text('💎', style: TextStyle(fontSize: 38)), const SizedBox(width: 12), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('King of Kings', style: TextStyle(color: Color(0xFFFFE2A0), fontSize: 18, fontWeight: FontWeight.w900)), SizedBox(height: 5), Text('Become and enjoy exclusive privileges', style: TextStyle(color: Color(0xFFFFE2A0), fontWeight: FontWeight.w600))])), Container(padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10), decoration: BoxDecoration(color: const Color(0xFFFFC13D), borderRadius: BorderRadius.circular(20)), child: const Text('Activate', style: TextStyle(fontWeight: FontWeight.w900)))]));
-  Widget _wallet(BuildContext context, String icon, String value, String label, Color color, VoidCallback? onTap) => InkWell(onTap: onTap, borderRadius: BorderRadius.circular(18), child: Container(height: 112, padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(18)), child: Row(children: [Text(icon, style: const TextStyle(fontSize: 39)), const SizedBox(width: 9), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [if (onTap != null) Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFFCA3A), Color(0xFFFF8538)]), borderRadius: BorderRadius.circular(18)), child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900))), const SizedBox(height: 8), Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black87))]))]));
+  Widget _wallet(
+    BuildContext context,
+    String icon,
+    String value,
+    String label,
+    Color color,
+    VoidCallback? onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        height: 112,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 39)),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (onTap != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFCA3A), Color(0xFFFF8538)],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _goldBanner() => Container(height: 105, decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF9A5716), Color(0xFFFFD45B), Color(0xFF8A4B12)]), borderRadius: BorderRadius.circular(16)), child: const Center(child: Text('Earn up to \$27\nby inviting new users', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900))));
   Widget _menuGrid(BuildContext context, bool first) {
     final items = first ? <List<dynamic>>[['📅', 'Task'], ['💗', 'Level'], ['💖', 'Fans Club'], ['🎮', 'Game'], ['🎒', 'Backpack'], ['🛍️', 'Dress Store'], ['🎟️', 'Event Center']] : <List<dynamic>>[['♛', 'VIP'], ['🛡️', 'Guardian'], ['↪️', 'Join agency'], ['🕵️', 'Real person detection'], ['❓', 'Help & Feedback'], ['🎧', 'Customer Service'], ['⚙️', 'Setting']];
-    return Container(padding: const EdgeInsets.fromLTRB(10, 20, 10, 14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)), child: Wrap(children: items.map((it) => SizedBox(width: MediaQuery.of(context).size.width / 4.6, height: 106, child: InkWell(onTap: () { if (it[1] == 'Wallet') openPage(context, const WalletPage()); }, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(it[0], style: const TextStyle(fontSize: 31)), const SizedBox(height: 8), Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: Text(it[1], textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)))])))).toList());
+    return Container(padding: const EdgeInsets.fromLTRB(10, 20, 10, 14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)), child: Wrap(children: items.map((it) => SizedBox(width: MediaQuery.of(context).size.width / 4.6, height: 106, child: InkWell(onTap: () { if (it[1] == 'Wallet') openPage(context, const WalletPage()); }, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(it[0], style: const TextStyle(fontSize: 31)), const SizedBox(height: 8), Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: Text(it[1], textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)))])))).toList()));
   }
 }
 
