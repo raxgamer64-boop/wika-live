@@ -32,5 +32,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: WikaLive-APK
+          name: WikaLive-letest-APK
           path: app/build/app/outputs/flutter-apk/app-release.apk
