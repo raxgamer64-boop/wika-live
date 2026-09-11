@@ -504,10 +504,8 @@ class HomeScreen extends StatelessWidget {
                   fontSize: 28,
                   height: 1.05,
                   letterSpacing: -0.5,
-                ),
+               fontWeight: FontWeight.w800, ),
               ),
-                      fontWeight: FontWeight.w800,
-                      fontWeight: FontWeight.w800,
               const SizedBox(height: 8),
               const Text(
                 'Watch live, join parties and connect with people.',
