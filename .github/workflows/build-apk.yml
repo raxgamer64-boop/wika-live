@@ -18,7 +18,8 @@ jobs:
 
       - name: flutter create --project-name wika_live .
         run: |
-          flutter create .
+          flutter create --project-name wika_live .
+  
           cp main.dart lib/main.dart
           flutter pub get
 
