@@ -9,9 +9,12 @@ Future<void> main() async {
   runApp(const WikaLiveApp());
 }
 
-const bg = Color(0xFF0B0B12);
-const card = Color(0xFF171722);
-const soft = Color(0xFF29293A);
+const bg = Color(0xFFF7F8FC);
+const card = Color(0xFFFFFFFF);
+const soft = Color(0xFFF0ECFF);
+const accent = Color(0xFF9B55E8);
+const textMain = Color(0xFF17151D);
+const textMuted = Color(0xFF77747E);
 
 class WikaLiveApp extends StatelessWidget {
   const WikaLiveApp({super.key});
@@ -22,9 +25,26 @@ class WikaLiveApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'WikaLive',
       theme: ThemeData(
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
         scaffoldBackgroundColor: bg,
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: accent,
+          brightness: Brightness.light,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          foregroundColor: textMain,
+          elevation: 0,
+          centerTitle: false,
+        ),
+        navigationBarTheme: const NavigationBarThemeData(
+          backgroundColor: Colors.white,
+          indicatorColor: Color(0xFFE9D8FF),
+          labelTextStyle: WidgetStatePropertyAll(
+            TextStyle(fontWeight: FontWeight.w700, color: textMain),
+          ),
+        ),
       ),
       home: const AuthGate(),
     );
@@ -329,6 +349,57 @@ class _HomePageState extends State<HomePage> {
     MeScreen(),
   ];
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: bg,
+      body: IndexedStack(index: index, children: pages),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: index,
+        onDestinationSelected: (i) => setState(() => index = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.live_tv_outlined),
+            selectedIcon: Icon(Icons.live_tv_rounded),
+            label: 'Live',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.campaign_outlined),
+            selectedIcon: Icon(Icons.campaign_rounded),
+            label: 'Party',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.explore_outlined),
+            selectedIcon: Icon(Icons.explore_rounded),
+            label: 'Moments',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_bubble_outline_rounded),
+            selectedIcon: Icon(Icons.chat_bubble_rounded),
+            label: 'Message',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded),
+            label: 'Me',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomePageState extends State<HomePage> {
+  int index = 0;
+
+  final pages = const [
+    HomeScreen(),
+    LiveScreen(),
+    PartyScreen(),
+    MessagesScreen(),
+    MeScreen(),
+  ];
+
   final titles = const [
     'WikaLive',
     'Live',
@@ -420,358 +491,301 @@ class _HomePageState extends State<HomePage> {
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  static const hosts = [
+    ['Mia', '261.9K', 'M'],
+    ['Luna', '236.2K', 'L'],
+    ['Sofia', '103.2K', 'S'],
+    ['Puja', '70K', 'P'],
+    ['Nina', '48.6K', 'N'],
+    ['Ava', '32.4K', 'A'],
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final hosts = [
-      ['Mia', '1.8K', 'M'],
-      ['Luna', '2.4K', 'L'],
-      ['Sofia', '980', 'S'],
-      ['Emma', '3.1K', 'E'],
-      ['Nina', '1.2K', 'N'],
-      ['Ava', '760', 'A'],
-    ];
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF4B2A8C),
-                Color(0xFF251A49),
-                Color(0xFF15131F),
-              ],
-            ),
-            border: Border.all(color: Colors.white10),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black38,
-                blurRadius: 18,
-                offset: Offset(0, 8),
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFF0ECFF), Color(0xFFFDF9FF), bg],
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(9),
-                    decoration: BoxDecoration(
-                      color: Colors.white12,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.auto_awesome_rounded, size: 22),
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      'Your world is live',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w600,
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 54, 20, 14),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Follow   Explore   Nearby   Beauty',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: textMain,
+                        ),
                       ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black26,
-                      borderRadius: BorderRadius.circular(20),
+                    _roundIcon(
+                      context,
+                      Icons.search_rounded,
+                      () => msg(context, 'Search coming soon'),
                     ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.circle, size: 8, color: Colors.greenAccent),
-                        SizedBox(width: 6),
-                        Text('Online', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                      ],
+                    const SizedBox(width: 8),
+                    _roundIcon(
+                      context,
+                      Icons.workspace_premium_rounded,
+                      () => msg(context, 'Rewards'),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Welcome to WikaLive',
-                style: TextStyle(
-                  fontSize: 28,
-                  height: 1.05,
-                  letterSpacing: -0.5,
-               fontWeight: FontWeight.w800, ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Watch live, join parties and connect with people.',
-                style: TextStyle(color: Colors.white70, height: 1.35),
-              ),
-              const SizedBox(height: 18),
-              Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.black26,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: const Row(
-                  children: [
-                    SizedBox(width: 14),
-                    Icon(Icons.search_rounded, color: Colors.white54),
-                    SizedBox(width: 10),
-                    Text('Search hosts, rooms...', style: TextStyle(color: Colors.white54)),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    _pill('Popular', selected: true),
+                    const SizedBox(width: 8),
+                    _pill('🇮🇳 🇧🇩 🇳🇵 🇵🇰'),
+                    const SizedBox(width: 8),
+                    _pill('🇺🇸 🇵🇭 🇬🇧'),
+                    const Spacer(),
+                    const Icon(Icons.tune_rounded, size: 24),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-
-        const SizedBox(height: 18),
-
-        Row(
-          children: [
-            Expanded(child: actionCard(context, 'Live', Icons.live_tv_rounded, 1)),
-            const SizedBox(width: 12),
-            Expanded(child: actionCard(context, 'Party', Icons.groups_rounded, 2)),
-          ],
-        ),
-
-        const SizedBox(height: 28),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Popular Live',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          sliver: SliverGrid(
+            delegate: SliverChildBuilderDelegate(
+              (context, i) => _liveCard(
+                context,
+                hosts[i][0],
+                hosts[i][1],
+                hosts[i][2],
+                i.isEven,
+              ),
+              childCount: hosts.length,
             ),
-            TextButton(
-              onPressed: () {
-                final state = context.findAncestorStateOfType<_HomePageState>();
-                state?.setState(() => state.index = 1);
-              },
-              child: const Text('See all'),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: .78,
             ),
-          ],
-        ),
-        const SizedBox(height: 10),
-
-        SizedBox(
-          height: 232,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: hosts.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (_, i) {
-              return liveMini(context, hosts[i][0], hosts[i][1], hosts[i][2]);
-            },
           ),
         ),
-
-        const SizedBox(height: 26),
-
-        const Text(
-          'Explore WikaLive',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _exploreCard(
-                icon: Icons.card_giftcard_rounded,
-                title: 'Send gifts',
-                subtitle: 'Support your favorite hosts',
-                onTap: () => openPage(context, const GiftsPage()),
-              ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _banner(
+              'WikaLive',
+              'Meet new people • Go live • Make friends',
+              Icons.auto_awesome_rounded,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _exploreCard(
-                icon: Icons.account_balance_wallet_rounded,
-                title: 'My wallet',
-                subtitle: 'Manage your coins',
-                onTap: () => openPage(context, const WalletPage()),
-              ),
-            ),
-          ],
+          ),
         ),
+        const SliverToBoxAdapter(child: SizedBox(height: 22)),
       ],
     );
   }
 
-  static Widget _exploreCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
+  static Widget _roundIcon(
+    BuildContext context,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(30),
       child: Container(
-        padding: const EdgeInsets.all(15),
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
-          color: card,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white10),
+          color: Colors.white.withOpacity(.75),
+          shape: BoxShape.circle,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white10,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, size: 24),
-            ),
-            const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.white54)),
-          ],
+        child: Icon(icon, color: textMain),
+      ),
+    );
+  }
+
+  static Widget _pill(String label, {bool selected = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFFF0D9FF) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: selected ? accent : textMain,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
         ),
       ),
     );
   }
 
-  static Widget actionCard(BuildContext context, String title, IconData icon, int tab) {
-    return InkWell(
-      onTap: () {
-        final state = context.findAncestorStateOfType<_HomePageState>();
-        state?.setState(() => state.index = tab);
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        height: 112,
-        decoration: BoxDecoration(
-          color: card,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white10),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(11),
-              decoration: BoxDecoration(
-                color: Colors.white10,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Icon(icon, size: 29),
-            ),
-            const SizedBox(width: 12),
-            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static Widget liveMini(
+  static Widget _liveCard(
     BuildContext context,
     String name,
     String viewers,
     String initial,
+    bool hd,
   ) {
     return InkWell(
-      onTap: () {
-        openPage(context, LiveRoomPage(host: name, viewers: '$viewers viewers'));
-      },
-      borderRadius: BorderRadius.circular(22),
+      onTap: () => openPage(
+        context,
+        LiveRoomPage(host: name, viewers: 'Live'),
+      ),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        width: 158,
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF6336C7), Color(0xFF171321)],
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: hd
+                ? const [Color(0xFF8C4FEA), Color(0xFF4A246F)]
+                : const [Color(0xFFFFC5DE), Color(0xFF7D54D8)],
           ),
-          border: Border.all(color: Colors.white12),
           boxShadow: const [
-            BoxShadow(color: Colors.black45, blurRadius: 14, offset: Offset(0, 7)),
+            BoxShadow(
+              blurRadius: 12,
+              offset: Offset(0, 5),
+              color: Color(0x22000000),
+            ),
           ],
         ),
         child: Stack(
           children: [
-            Positioned(
-              top: 11,
-              left: 11,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF4652),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.circle, size: 6),
-                    SizedBox(width: 5),
-                    Text('LIVE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                  ],
+            Positioned.fill(
+              child: Center(
+                child: CircleAvatar(
+                  radius: 45,
+                  backgroundColor: Colors.white.withOpacity(.24),
+                  child: Text(
+                    initial,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 42,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
               ),
             ),
             Positioned(
-              top: 12,
+              left: 10,
+              top: 10,
+              child: _tag('🌸 Golden Host'),
+            ),
+            Positioned(
               right: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.black38,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.visibility_rounded, size: 11),
-                    const SizedBox(width: 4),
-                    Text(viewers, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ),
-            Center(
-              child: Container(
-                width: 74,
-                height: 74,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white12,
-                  border: Border.all(color: Colors.white38, width: 2),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  initial,
-                  style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
-                ),
-              ),
+              top: 10,
+              child: _tag(hd ? 'HD Live' : 'PK'),
             ),
             Positioned(
-              left: 13,
-              right: 13,
-              bottom: 13,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              left: 10,
+              right: 10,
+              bottom: 10,
+              child: Row(
                 children: [
-                  Text(name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 3),
-                  const Text('Tap to join live', style: TextStyle(fontSize: 10, color: Colors.white60)),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.local_fire_department_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  Text(
+                    viewers,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  static Widget _tag(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(.28),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  static Widget _banner(String title, String subtitle, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE7D3FF), Color(0xFFFFD9EA)],
+        ),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: Colors.white,
+            child: Icon(icon, color: accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: textMain,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -781,133 +795,208 @@ class LiveScreen extends StatelessWidget {
   const LiveScreen({super.key});
 
   static const hosts = [
-    ['Mia', '2.4K'],
-    ['Luna', '1.8K'],
-    ['Sofia', '3.1K'],
-    ['Emma', '956'],
-    ['Nina', '1.2K'],
-    ['Ava', '2.0K'],
+    ['Mia', '261.9K', 'M'],
+    ['Luna', '236.2K', 'L'],
+    ['Puja', '103.2K', 'P'],
+    ['Sofia', '70K', 'S'],
+    ['Nina', '52.4K', 'N'],
+    ['Ava', '41.1K', 'A'],
   ];
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        16,
-        8,
-        16,
-        24,
-      ),
-      children: [
-        SizedBox(
-          height: 42,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: const [
-              _Cat('For You', true),
-              _Cat('Popular'),
-              _Cat('New'),
-              _Cat('PK'),
-              _Cat('Music'),
-            ],
-          ),
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: _top(context, 'Explore'),
         ),
-
-        const SizedBox(height: 20),
-
-        const Text(
-          'Live Now',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 30),
+          sliver: SliverGrid(
+            delegate: SliverChildBuilderDelegate(
+              (context, i) => _card(context, hosts[i]),
+              childCount: hosts.length,
+            ),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: .76,
+            ),
           ),
-        ),
-
-        const SizedBox(height: 14),
-
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: hosts.length,
-          gridDelegate:
-              const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 14,
-            childAspectRatio: .72,
-          ),
-          itemBuilder: (_, i) {
-            return InkWell(
-              onTap: () {
-                openPage(
-                  context,
-                  LiveRoomPage(
-                    host: hosts[i][0],
-                    viewers: '${hosts[i][1]} viewers',
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.deepPurple.shade700,
-                      Colors.black87,
-                    ],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: 10,
-                      left: 10,
-                      child: badge('LIVE'),
-                    ),
-                    const Center(
-                      child: CircleAvatar(
-                        radius: 34,
-                        child: Icon(
-                          Icons.person,
-                          size: 38,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 12,
-                      bottom: 12,
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            hosts[i][0],
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${hosts[i][1]} viewers',
-                            style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
         ),
       ],
+    );
+  }
+
+  static Widget _top(BuildContext context, String active) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 54, 20, 16),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFF0ECFF), Color(0xFFFDF9FF)],
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(
+                'Follow',
+                style: TextStyle(
+                  color: textMuted,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 22),
+              Text(
+                active,
+                style: const TextStyle(
+                  color: textMain,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const Spacer(),
+              const Icon(Icons.search_rounded, size: 29),
+              const SizedBox(width: 14),
+              const Icon(Icons.workspace_premium_rounded, size: 29),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _chip('Popular', true),
+              const SizedBox(width: 8),
+              _chip('🇮🇳 🇧🇩 🇳🇵'),
+              const SizedBox(width: 8),
+              _chip('🇺🇸 🇵🇭 🇬🇧'),
+              const Spacer(),
+              const Icon(Icons.tune_rounded),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _chip(String text, bool active) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+      decoration: BoxDecoration(
+        color: active ? const Color(0xFFECD6FF) : Colors.white,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: active ? accent : textMain,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  static Widget _card(BuildContext context, List<String> host) {
+    return InkWell(
+      onTap: () => openPage(context, LiveRoomPage(host: host[0], viewers: host[1])),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF7E45D8), Color(0xFF251B3D)],
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Center(
+              child: CircleAvatar(
+                radius: 48,
+                backgroundColor: Colors.white24,
+                child: Text(
+                  host[2],
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 42,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 10,
+              top: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE33D65),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  '● LIVE',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 10,
+              top: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black26,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  '👁 ${host[1]}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 11,
+              bottom: 12,
+              right: 11,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    host[0],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  const Text(
+                    'Tap to join live',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1160,95 +1249,224 @@ class PartyScreen extends StatelessWidget {
   const PartyScreen({super.key});
 
   static const rooms = [
-    'Music Party',
-    'Fun & Chat',
-    'Night Party',
-    'Friends Room',
-    'Gaming Party',
-    'Talk Room',
+    ['hotty hot 🔥🔥🔥', 'Welcome to party!! we build friends together', '31', 'HH'],
+    ['SINGH Agency', 'Radhe krishna 🦚', '4', 'SA'],
+    ["Suman's room", "Welcome to my party room, let's chat", '3', 'SR'],
+    ["suhani's room", "Welcome to my party room, let's chat", '2', 'SU'],
+    ["humko v Patao's room", "Welcome to my party room, let's chat", '8', 'HP'],
   ];
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Party Rooms',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: () {
-                openPage(
-                  context,
-                  const CreatePartyPage(),
-                );
-              },
-              icon: const Icon(
-                Icons.add_circle_outline,
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 8),
-
-        const Text(
-          'Join a room and chat with people.',
-          style: TextStyle(
-            color: Colors.white60,
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        ...rooms.map(
-          (room) => Card(
-            color: card,
-            margin: const EdgeInsets.only(
-              bottom: 12,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: ListTile(
-              contentPadding:
-                  const EdgeInsets.all(12),
-              leading: const CircleAvatar(
-                radius: 27,
-                child: Icon(Icons.groups),
-              ),
-              title: Text(
-                room,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              subtitle: Text(
-                '${5 + rooms.indexOf(room)} people',
-              ),
-              trailing: const Icon(
-                Icons.chevron_right,
-              ),
-              onTap: () {
-                openPage(
-                  context,
-                  PartyRoomPage(
-                    title: room,
-                  ),
-                );
-              },
-            ),
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: _header()),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 30),
+          sliver: SliverList.builder(
+            itemCount: rooms.length,
+            itemBuilder: (context, i) => _room(context, rooms[i], i),
           ),
         ),
       ],
+    );
+  }
+
+  static Widget _header() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 54, 20, 16),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFF0ECFF), Color(0xFFFDF9FF)],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Me',
+                style: TextStyle(
+                  color: textMuted,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 22),
+              const Text(
+                'Party',
+                style: TextStyle(
+                  color: textMain,
+                  fontSize: 23,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const Spacer(),
+              const Icon(Icons.search_rounded, size: 29),
+              const SizedBox(width: 14),
+              const Icon(Icons.workspace_premium_rounded, size: 29),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _tab('Popular', true),
+              const SizedBox(width: 8),
+              _tab('PK Battle', false),
+              const SizedBox(width: 8),
+              _tab('Event', false),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _tab(String text, bool active) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: active ? const Color(0xFFECD6FF) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: active ? accent : textMain,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  static Widget _room(
+    BuildContext context,
+    List<String> room,
+    int index,
+  ) {
+    return InkWell(
+      onTap: () => openPage(
+        context,
+        PartyRoomPage(title: room[0]),
+      ),
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              blurRadius: 10,
+              offset: Offset(0, 4),
+              color: Color(0x12000000),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 92,
+              height: 92,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                gradient: LinearGradient(
+                  colors: index.isEven
+                      ? const [Color(0xFFFF7DB6), Color(0xFF7A49DB)]
+                      : const [Color(0xFF87CFFF), Color(0xFFAF7CF4)],
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  room[3],
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '🇮🇳 ${room[0]}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: textMain,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    room[1],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEBD7FF),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Lv.${index + 1}',
+                          style: const TextStyle(
+                            color: accent,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Music Party',
+                        style: TextStyle(
+                          color: Color(0xFFBD55D9),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              children: [
+                const Icon(
+                  Icons.bar_chart_rounded,
+                  color: accent,
+                ),
+                Text(
+                  room[2],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: textMain,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1498,60 +1716,221 @@ class _PartyRoomState
 class MessagesScreen extends StatelessWidget {
   const MessagesScreen({super.key});
 
-  static const chats = [
-    ['Mia', 'Hi! Welcome to WikaLive 👋'],
-    ['Luna', 'See you in my live!'],
-    ['Sofia', 'Thanks for joining ❤️'],
-    ['Emma', 'Hello 😊'],
-    ['Ava', 'Let’s chat later.'],
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: chats.length,
-      separatorBuilder: (_, __) =>
-          const SizedBox(height: 8),
-      itemBuilder: (_, i) {
-        return ListTile(
-          shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(18),
-          ),
-          tileColor: card,
-          leading: CircleAvatar(
-            child: Text(
-              chats[i][0][0],
-            ),
-          ),
-          title: Text(
-            chats[i][0],
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          subtitle: Text(
-            chats[i][1],
-          ),
-          trailing: const Text(
-            'now',
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 12,
-            ),
-          ),
-          onTap: () {
-            openPage(
-              context,
-              ChatPage(
-                name: chats[i][0],
-                initial: chats[i][1],
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 58, 20, 16),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFF0ECFF), Color(0xFFFDF9FF)],
               ),
-            );
-          },
-        );
-      },
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Text(
+                      'Message',
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w900,
+                        color: textMain,
+                      ),
+                    ),
+                    SizedBox(width: 24),
+                    Text(
+                      'Friends',
+                      style: TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w700,
+                        color: textMuted,
+                      ),
+                    ),
+                    Spacer(),
+                    Icon(Icons.settings_outlined, size: 27),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  height: 50,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(26),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.search_rounded, color: textMuted),
+                      SizedBox(width: 10),
+                      Text(
+                        "Please enter user's name",
+                        style: TextStyle(
+                          color: Color(0xFFB5B3B8),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Spacer(),
+                      Icon(Icons.sort_rounded),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _quick('🦄', 'Crush Team'),
+                    _quick('❤️', 'New Follow'),
+                    _quick('👍', 'Interactive'),
+                    _quick('🎟️', 'Event Center'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(18),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              _membership(),
+              const SizedBox(height: 14),
+              _messageRow(
+                context,
+                'Mia',
+                'Welcome to WikaLive 💜',
+                Icons.favorite_rounded,
+              ),
+              _messageRow(
+                context,
+                'Luna',
+                'Come join my live room!',
+                Icons.live_tv_rounded,
+              ),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Widget _quick(String emoji, String label) {
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 32,
+          backgroundColor: Colors.white,
+          child: Text(emoji, style: const TextStyle(fontSize: 27)),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            color: textMain,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Widget _membership() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 31,
+            backgroundColor: Color(0xFFFFB62F),
+            child: Icon(Icons.home_rounded, color: Colors.white, size: 32),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'My Party Membership',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: textMain,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "You haven't joined any rooms yet",
+                  style: TextStyle(
+                    color: textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _messageRow(
+    BuildContext context,
+    String name,
+    String preview,
+    IconData icon,
+  ) {
+    return InkWell(
+      onTap: () => openPage(context, ChatPage(name: name, initial: name.isNotEmpty ? name[0] : 'W')),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Color(0x14000000))),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: const Color(0xFFE4D3FF),
+              child: Text(
+                name[0],
+                style: const TextStyle(
+                  color: accent,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: textMain,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    preview,
+                    style: const TextStyle(
+                      color: textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(icon, color: accent),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1714,9 +2093,7 @@ class MeScreen extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      return const Center(
-        child: Text('Please login again'),
-      );
+      return const Center(child: Text('Please login again'));
     }
 
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -1726,137 +2103,345 @@ class MeScreen extends StatelessWidget {
           .snapshots(),
       builder: (context, snapshot) {
         final data = snapshot.data?.data();
-
         final name =
-            (data?['name'] ?? user.displayName ?? 'WikaLive User')
-                .toString();
-
-        final email =
-            (data?['email'] ?? user.email ?? '').toString();
-
+            (data?['name'] ?? user.displayName ?? 'WikaLive User').toString();
+        final email = (data?['email'] ?? user.email ?? '').toString();
         final coins = data?['coins'] is num
             ? (data!['coins'] as num).toInt()
             : 0;
 
-        return ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            CircleAvatar(
-              radius: 48,
-              child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : 'W',
-                style: const TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Center(
-              child: Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            if (email.isNotEmpty)
-              Center(
-                child: Text(
-                  email,
-                  style: const TextStyle(
-                    color: Colors.white60,
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(20, 54, 20, 20),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFF0ECFF), Color(0xFFFDF9FF), bg],
                   ),
                 ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Spacer(),
+                        IconButton(
+                          onPressed: () => openPage(
+                            context,
+                            const SettingsPage(),
+                          ),
+                          icon: const Icon(Icons.settings_outlined),
+                        ),
+                      ],
+                    ),
+                    CircleAvatar(
+                      radius: 53,
+                      backgroundColor: const Color(0xFF6543B7),
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : 'W',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 40,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        color: textMain,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (email.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        email,
+                        style: const TextStyle(
+                          color: textMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 18),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _Stat(value: '0', label: 'Friends'),
+                        _Stat(value: '0', label: 'Follow'),
+                        _Stat(value: '0', label: 'Followers'),
+                        _Stat(value: '0', label: 'Visitors'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-
-            const SizedBox(height: 25),
-
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 14,
-              ),
-              decoration: BoxDecoration(
-                color: card,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.monetization_on_outlined),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Coins',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _goldBanner(context),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _coinCard(
+                          'Coins',
+                          coins.toString(),
+                          Icons.monetization_on_rounded,
+                          const Color(0xFFFFF3BF),
+                          () => openPage(context, const WalletPage()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _coinCard(
+                          'Gems',
+                          '0',
+                          Icons.diamond_rounded,
+                          const Color(0xFFEFE0FF),
+                          () => msg(context, 'Gems'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _featureGrid(context),
+                  const SizedBox(height: 14),
+                  _settingsGrid(context),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    height: 50,
+                    child: FilledButton.icon(
+                      onPressed: () async {
+                        await FirebaseAuth.instance.signOut();
+                      },
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text(
+                        'Logout',
+                        style: TextStyle(fontWeight: FontWeight.w900),
                       ),
                     ),
                   ),
-                  Text(
-                    coins.toString(),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+                ]),
               ),
-            ),
-
-            const SizedBox(height: 12),
-
-            menu(
-              context,
-              'Wallet',
-              Icons.account_balance_wallet_outlined,
-              const WalletPage(),
-            ),
-
-            menu(
-              context,
-              'My Gifts',
-              Icons.card_giftcard,
-              const GiftsPage(),
-            ),
-
-            menu(
-              context,
-              'Become a Host',
-              Icons.videocam_outlined,
-              const HostPage(),
-            ),
-
-            menu(
-              context,
-              'Agency',
-              Icons.business_center_outlined,
-              const AgencyPage(),
-            ),
-
-            menu(
-              context,
-              'Settings',
-              Icons.settings_outlined,
-              const SettingsPage(),
-            ),
-
-            const SizedBox(height: 10),
-
-            FilledButton.tonalIcon(
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-              },
-              icon: const Icon(Icons.logout),
-              label: const Text('Logout'),
             ),
           ],
         );
       },
+    );
+  }
+
+  static Widget _goldBanner(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4A270D), Color(0xFF8D5315)],
+        ),
+      ),
+      child: Row(
+        children: [
+          const Text('💎', style: TextStyle(fontSize: 35)),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'King of Kings',
+                  style: TextStyle(
+                    color: Color(0xFFFFE0A0),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Become and enjoy exclusive privileges',
+                  style: TextStyle(
+                    color: Color(0xFFFFE0A0),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          FilledButton(
+            onPressed: () => msg(context, 'VIP activation coming soon'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFFFBE45),
+              foregroundColor: textMain,
+            ),
+            child: const Text('Activate'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _coinCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        height: 112,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 38, color: accent),
+            const Spacer(),
+            Text(
+              value,
+              style: const TextStyle(
+                color: textMain,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              title,
+              style: const TextStyle(
+                color: textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget _featureGrid(BuildContext context) {
+    final items = [
+      ['🎁', 'Gifts', () => openPage(context, const GiftsPage())],
+      ['💗', 'Fans Club', () => msg(context, 'Fans Club')],
+      ['🎮', 'Game', () => msg(context, 'Games')],
+      ['🎒', 'Backpack', () => msg(context, 'Backpack')],
+      ['🏪', 'Store', () => msg(context, 'Store')],
+      ['🎟️', 'Events', () => msg(context, 'Events')],
+    ];
+
+    return _whitePanel(
+      children: items.map((item) {
+        return InkWell(
+          onTap: item[2] as VoidCallback,
+          child: Column(
+            children: [
+              Text(item[0] as String, style: const TextStyle(fontSize: 28)),
+              const SizedBox(height: 6),
+              Text(
+                item[1] as String,
+                style: const TextStyle(
+                  color: textMain,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  static Widget _settingsGrid(BuildContext context) {
+    final items = [
+      ['👑', 'VIP', () => msg(context, 'VIP')],
+      ['🛡️', 'Guardian', () => msg(context, 'Guardian')],
+      ['↪️', 'Join agency', () => openPage(context, const AgencyPage())],
+      ['🧑', 'Real person', () => msg(context, 'Verification')],
+      ['❓', 'Help', () => msg(context, 'Help & Feedback')],
+      ['🎧', 'Customer Service', () => msg(context, 'Customer Service')],
+    ];
+
+    return _whitePanel(
+      children: items.map((item) {
+        return InkWell(
+          onTap: item[2] as VoidCallback,
+          child: Column(
+            children: [
+              Text(item[0] as String, style: const TextStyle(fontSize: 26)),
+              const SizedBox(height: 6),
+              Text(
+                item[1] as String,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: textMain,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  static Widget _whitePanel({required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: GridView.count(
+        crossAxisCount: 3,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        childAspectRatio: 1.25,
+        children: children,
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const _Stat({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: textMain,
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: const TextStyle(
+            color: textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }
