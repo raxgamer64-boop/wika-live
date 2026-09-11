@@ -9,12 +9,9 @@ Future<void> main() async {
   runApp(const WikaLiveApp());
 }
 
-const bg = Color(0xFFF7F8FC);
-const card = Color(0xFFFFFFFF);
-const soft = Color(0xFFF0ECFF);
-const accent = Color(0xFF9B55E8);
-const textMain = Color(0xFF17151D);
-const textMuted = Color(0xFF77747E);
+const bg = Color(0xFFF7F7FA);
+const card = Colors.white;
+const soft = Color(0xFFF0EEF4);
 
 class WikaLiveApp extends StatelessWidget {
   const WikaLiveApp({super.key});
@@ -28,23 +25,6 @@ class WikaLiveApp extends StatelessWidget {
         brightness: Brightness.light,
         scaffoldBackgroundColor: bg,
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: accent,
-          brightness: Brightness.light,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          foregroundColor: textMain,
-          elevation: 0,
-          centerTitle: false,
-        ),
-        navigationBarTheme: const NavigationBarThemeData(
-          backgroundColor: Colors.white,
-          indicatorColor: Color(0xFFE9D8FF),
-          labelTextStyle: WidgetStatePropertyAll(
-            TextStyle(fontWeight: FontWeight.w700, color: textMain),
-          ),
-        ),
       ),
       home: const AuthGate(),
     );
@@ -342,9 +322,9 @@ class _HomePageState extends State<HomePage> {
   int index = 0;
 
   final pages = const [
-    HomeScreen(),
     LiveScreen(),
     PartyScreen(),
+    MomentsScreen(),
     MessagesScreen(),
     MeScreen(),
   ];
@@ -352,35 +332,50 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: const Color(0xFFF7F7FA),
       body: IndexedStack(index: index, children: pages),
       bottomNavigationBar: NavigationBar(
+        height: 72,
+        backgroundColor: Colors.white,
+        elevation: 8,
         selectedIndex: index,
+        indicatorColor: Colors.transparent,
         onDestinationSelected: (i) => setState(() => index = i),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          return TextStyle(
+            fontSize: 12,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w800
+                : FontWeight.w600,
+            color: states.contains(WidgetState.selected)
+                ? const Color(0xFF9B55E8)
+                : const Color(0xFF17171D),
+          );
+        }),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.live_tv_outlined),
-            selectedIcon: Icon(Icons.live_tv_rounded),
+            selectedIcon: Icon(Icons.live_tv_rounded, color: Color(0xFFB65BEA)),
             label: 'Live',
           ),
           NavigationDestination(
             icon: Icon(Icons.campaign_outlined),
-            selectedIcon: Icon(Icons.campaign_rounded),
+            selectedIcon: Icon(Icons.campaign_rounded, color: Color(0xFFB65BEA)),
             label: 'Party',
           ),
           NavigationDestination(
             icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore_rounded),
+            selectedIcon: Icon(Icons.explore_rounded, color: Color(0xFFB65BEA)),
             label: 'Moments',
           ),
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline_rounded),
-            selectedIcon: Icon(Icons.chat_bubble_rounded),
+            selectedIcon: Icon(Icons.chat_bubble_rounded, color: Color(0xFFB65BEA)),
             label: 'Message',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
+            selectedIcon: Icon(Icons.person_rounded, color: Color(0xFFB65BEA)),
             label: 'Me',
           ),
         ],
@@ -389,491 +384,77 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class _HomePageState extends State<HomePage> {
-  int index = 0;
-
-  final pages = const [
-    HomeScreen(),
-    LiveScreen(),
-    PartyScreen(),
-    MessagesScreen(),
-    MeScreen(),
-  ];
-
-  final titles = const [
-    'WikaLive',
-    'Live',
-    'Party',
-    'Messages',
-    'Me',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: bg,
-        title: Text(
-          titles[index],
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              openPage(
-                context,
-                const NotificationsPage(),
-              );
-            },
-            icon: const Icon(
-              Icons.notifications_none_rounded,
-            ),
-          ),
-          IconButton(
-            onPressed: () {
-              openPage(
-                context,
-                const WalletPage(),
-              );
-            },
-            icon: const Icon(
-              Icons.account_balance_wallet_outlined,
-            ),
-          ),
-        ],
-      ),
-      body: IndexedStack(
-        index: index,
-        children: pages,
-      ),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: const Color(0xFF11111A),
-        selectedIndex: index,
-        onDestinationSelected: (i) {
-          setState(() {
-            index = i;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.live_tv_outlined),
-            selectedIcon: Icon(Icons.live_tv),
-            label: 'Live',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
-            label: 'Party',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Messages',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Me',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  static const hosts = [
-    ['Mia', '261.9K', 'M'],
-    ['Luna', '236.2K', 'L'],
-    ['Sofia', '103.2K', 'S'],
-    ['Puja', '70K', 'P'],
-    ['Nina', '48.6K', 'N'],
-    ['Ava', '32.4K', 'A'],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFF0ECFF), Color(0xFFFDF9FF), bg],
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 54, 20, 14),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Follow   Explore   Nearby   Beauty',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: textMain,
-                        ),
-                      ),
-                    ),
-                    _roundIcon(
-                      context,
-                      Icons.search_rounded,
-                      () => msg(context, 'Search coming soon'),
-                    ),
-                    const SizedBox(width: 8),
-                    _roundIcon(
-                      context,
-                      Icons.workspace_premium_rounded,
-                      () => msg(context, 'Rewards'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    _pill('Popular', selected: true),
-                    const SizedBox(width: 8),
-                    _pill('🇮🇳 🇧🇩 🇳🇵 🇵🇰'),
-                    const SizedBox(width: 8),
-                    _pill('🇺🇸 🇵🇭 🇬🇧'),
-                    const Spacer(),
-                    const Icon(Icons.tune_rounded, size: 24),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          sliver: SliverGrid(
-            delegate: SliverChildBuilderDelegate(
-              (context, i) => _liveCard(
-                context,
-                hosts[i][0],
-                hosts[i][1],
-                hosts[i][2],
-                i.isEven,
-              ),
-              childCount: hosts.length,
-            ),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: .78,
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _banner(
-              'WikaLive',
-              'Meet new people • Go live • Make friends',
-              Icons.auto_awesome_rounded,
-            ),
-          ),
-        ),
-        const SliverToBoxAdapter(child: SizedBox(height: 22)),
-      ],
-    );
-  }
-
-  static Widget _roundIcon(
-    BuildContext context,
-    IconData icon,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(30),
-      child: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(.75),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: textMain),
-      ),
-    );
-  }
-
-  static Widget _pill(String label, {bool selected = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
-      decoration: BoxDecoration(
-        color: selected ? const Color(0xFFF0D9FF) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: selected ? accent : textMain,
-          fontWeight: FontWeight.w800,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  static Widget _liveCard(
-    BuildContext context,
-    String name,
-    String viewers,
-    String initial,
-    bool hd,
-  ) {
-    return InkWell(
-      onTap: () => openPage(
-        context,
-        LiveRoomPage(host: name, viewers: 'Live'),
-      ),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: hd
-                ? const [Color(0xFF8C4FEA), Color(0xFF4A246F)]
-                : const [Color(0xFFFFC5DE), Color(0xFF7D54D8)],
-          ),
-          boxShadow: const [
-            BoxShadow(
-              blurRadius: 12,
-              offset: Offset(0, 5),
-              color: Color(0x22000000),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Center(
-                child: CircleAvatar(
-                  radius: 45,
-                  backgroundColor: Colors.white.withOpacity(.24),
-                  child: Text(
-                    initial,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 10,
-              top: 10,
-              child: _tag('🌸 Golden Host'),
-            ),
-            Positioned(
-              right: 10,
-              top: 10,
-              child: _tag(hd ? 'HD Live' : 'PK'),
-            ),
-            Positioned(
-              left: 10,
-              right: 10,
-              bottom: 10,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  const Icon(
-                    Icons.local_fire_department_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  Text(
-                    viewers,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static Widget _tag(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(.28),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-
-  static Widget _banner(String title, String subtitle, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE7D3FF), Color(0xFFFFD9EA)],
-        ),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: Colors.white,
-            child: Icon(icon, color: accent),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: textMain,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: textMuted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class LiveScreen extends StatelessWidget {
+class LiveScreen extends StatefulWidget {
   const LiveScreen({super.key});
 
+  @override
+  State<LiveScreen> createState() => _LiveScreenState();
+}
+
+class _LiveScreenState extends State<LiveScreen> {
+  int topTab = 1;
+  int filter = 0;
+
   static const hosts = [
-    ['Mia', '261.9K', 'M'],
-    ['Luna', '236.2K', 'L'],
-    ['Puja', '103.2K', 'P'],
-    ['Sofia', '70K', 'S'],
-    ['Nina', '52.4K', 'N'],
-    ['Ava', '41.1K', 'A'],
+    ['Who carEs 😜', '261.9K', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=900'],
+    ['candyy09🍭❤️', '236.2K', 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=900'],
+    ['Welcomew dost all', '103.2K', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=900'],
+    ['Target pending', '70K', 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=900'],
+    ['Golden Star', '58.4K', 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=900'],
+    ['Hot live', '42.7K', 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=900'],
   ];
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: _top(context, 'Explore'),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 30),
-          sliver: SliverGrid(
-            delegate: SliverChildBuilderDelegate(
-              (context, i) => _card(context, hosts[i]),
-              childCount: hosts.length,
-            ),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: .76,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  static Widget _top(BuildContext context, String active) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 54, 20, 16),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFF0ECFF), Color(0xFFFDF9FF)],
-        ),
-      ),
-      child: Column(
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
         children: [
           Row(
             children: [
-              Text(
-                'Follow',
-                style: TextStyle(
-                  color: textMuted,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 22),
-              Text(
-                active,
-                style: const TextStyle(
-                  color: textMain,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+              _topTab('Follow', false, 0),
+              _topTab('Explore', true, 1),
+              _topTab('Nearby', false, 2),
+              _topTab('Beauty', false, 3),
               const Spacer(),
-              const Icon(Icons.search_rounded, size: 29),
-              const SizedBox(width: 14),
-              const Icon(Icons.workspace_premium_rounded, size: 29),
+              const Icon(Icons.search_rounded, size: 31),
+              const SizedBox(width: 12),
+              const Text('👑', style: TextStyle(fontSize: 28)),
             ],
           ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _filterChip('Popular', filter == 0, 0),
+              const SizedBox(width: 8),
+              _flagChip('🇮🇳  🇧🇩  🇳🇵  🇵🇰'),
+              const SizedBox(width: 8),
+              _flagChip('🇺🇸  🇵🇭  🇬🇧'),
+              const Spacer(),
+              const Icon(Icons.tune_rounded, size: 29),
+            ],
+          ),
+          const SizedBox(height: 18),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: hosts.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: .72,
+            ),
+            itemBuilder: (_, i) => _liveCard(context, hosts[i]),
+          ),
+          const SizedBox(height: 18),
+          _banner('GAME RANKING', '🏆  ✨  💰  ✨  👑', const Color(0xFF5420A4)),
           const SizedBox(height: 16),
           Row(
             children: [
-              _chip('Popular', true),
-              const SizedBox(width: 8),
-              _chip('🇮🇳 🇧🇩 🇳🇵'),
-              const SizedBox(width: 8),
-              _chip('🇺🇸 🇵🇭 🇬🇧'),
-              const Spacer(),
-              const Icon(Icons.tune_rounded),
+              Expanded(child: _promoCard('90% OFF', '🎁', 'LIVE', const Color(0xFFB94AF2))),
+              const SizedBox(width: 12),
+              Expanded(child: _promoCard('New users', '💎', 'REWARD', const Color(0xFFFFA32D))),
             ],
           ),
         ],
@@ -881,149 +462,192 @@ class LiveScreen extends StatelessWidget {
     );
   }
 
-  static Widget _chip(String text, bool active) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-      decoration: BoxDecoration(
-        color: active ? const Color(0xFFECD6FF) : Colors.white,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: active ? accent : textMain,
-          fontWeight: FontWeight.w800,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  static Widget _card(BuildContext context, List<String> host) {
-    return InkWell(
-      onTap: () => openPage(context, LiveRoomPage(host: host[0], viewers: host[1])),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF7E45D8), Color(0xFF251B3D)],
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
+  Widget _topTab(String text, bool selected, int value) {
+    return GestureDetector(
+      onTap: () => setState(() => topTab = value),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 22),
+        child: Column(
           children: [
-            Center(
-              child: CircleAvatar(
-                radius: 48,
-                backgroundColor: Colors.white24,
-                child: Text(
-                  host[2],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 42,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 10,
-              top: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE33D65),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Text(
-                  '● LIVE',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              right: 10,
-              top: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black26,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  '👁 ${host[1]}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 11,
-              bottom: 12,
-              right: 11,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    host[0],
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  const Text(
-                    'Tap to join live',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            Text(text, style: TextStyle(fontSize: 19, fontWeight: selected ? FontWeight.w900 : FontWeight.w700, color: selected ? Colors.black : Colors.black54)),
+            const SizedBox(height: 8),
+            Container(width: selected ? 34 : 0, height: 4, decoration: BoxDecoration(color: const Color(0xFF8E59E8), borderRadius: BorderRadius.circular(5))),
           ],
         ),
       ),
     );
   }
+
+  Widget _filterChip(String text, bool selected, int value) {
+    return GestureDetector(
+      onTap: () => setState(() => filter = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(color: selected ? const Color(0xFFF1D9FF) : Colors.white, borderRadius: BorderRadius.circular(22)),
+        child: Text(text, style: const TextStyle(color: Color(0xFF9452E8), fontWeight: FontWeight.w800)),
+      ),
+    );
+  }
+
+  Widget _flagChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)),
+      child: Text(text, style: const TextStyle(fontSize: 17)),
+    );
+  }
+
+  Widget _liveCard(BuildContext context, List<String> host) {
+    return InkWell(
+      onTap: () => openPage(context, LiveRoomPage(host: host[0], viewers: '${host[1]} viewers')),
+      borderRadius: BorderRadius.circular(18),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(host[2], fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: const Color(0xFFDACCF0), child: const Icon(Icons.person, size: 65))),
+            const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black26, Colors.transparent, Colors.black87]))),
+            Positioned(top: 9, left: 9, child: _badge('👑 Golden Host', const Color(0xFF7D20D8))),
+            Positioned(top: 9, right: 9, child: _badge('HD Live', const Color(0xFFFFB51B))),
+            Positioned(left: 11, right: 11, bottom: 11, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _badge('🔗 Guest Call', Colors.white.withValues(alpha: .88), darkText: true),
+              const SizedBox(height: 8),
+              Text(host[0], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 3),
+              Text('🇮🇳   🔥 ${host[1]}', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+            ])),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _badge(String text, Color color, {bool darkText = false}) {
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)), child: Text(text, style: TextStyle(color: darkText ? Colors.black87 : Colors.white, fontSize: 11, fontWeight: FontWeight.w900)));
+  }
+
+  Widget _banner(String title, String decoration, Color color) {
+    return Container(height: 92, decoration: BoxDecoration(gradient: LinearGradient(colors: [color, const Color(0xFFBD56E9)]), borderRadius: BorderRadius.circular(16)), child: Stack(children: [Center(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, shadows: [Shadow(blurRadius: 5)]))), Positioned(top: 6, left: 16, child: Text(decoration, style: const TextStyle(fontSize: 24)))]));
+  }
+
+  Widget _promoCard(String tag, String icon, String button, Color color) {
+    return Container(height: 105, padding: const EdgeInsets.all(13), decoration: BoxDecoration(gradient: LinearGradient(colors: [color.withValues(alpha: .9), Colors.white]), borderRadius: BorderRadius.circular(18)), child: Row(children: [Text(icon, style: const TextStyle(fontSize: 38)), const SizedBox(width: 8), Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(tag, style: const TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 8), Container(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)), child: Text(button, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900))) ]))]));
+  }
 }
 
-class _Cat extends StatelessWidget {
-  final String text;
-  final bool selected;
+class PartyScreen extends StatelessWidget {
+  const PartyScreen({super.key});
 
-  const _Cat(
-    this.text, [
-    this.selected = false,
-  ]);
+  static const rooms = [
+    ['hotty hot 🔥🔥🔥🔥', 'Welcome to party!! we build friends tru...', '31', '🔥 Make Friends', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600'],
+    ['SINGH Agency', '💗 Radhe krishna 🦚', '4', '🎵 Music Party', 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600'],
+    ["Suman's room", "Welcome to my party room, let's chat", '3', '💬 Gossip', 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600'],
+    ["suhani's room", "Welcome to my party room, let's chat", '2', '💗 Emotional Share', 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600'],
+    ["humko v Patao's room", "Welcome to my party room, let's chat", '7', '🎵 Music Party', 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600'],
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 18,
-      ),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: selected ? soft : card,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Text(text),
+    return SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(20, 10, 20, 20), children: [
+      Row(children: [const Text('Me', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w700, color: Colors.black45)), const SizedBox(width: 22), const Text('Party', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)), const Spacer(), const Icon(Icons.search_rounded, size: 31), const SizedBox(width: 15), const Text('👑', style: TextStyle(fontSize: 28))]),
+      const SizedBox(height: 12),
+      _tabs(),
+      const SizedBox(height: 16),
+      ...rooms.map((r) => _room(context, r)),
+      const SizedBox(height: 8),
+      _wideBanner('LUCKY BLESSING', 'x1000 Bonus'),
+    ]));
+  }
+
+  Widget _tabs() => Row(children: [_tab('Popular', true), _tab('PK Battle', false), _tab('🎟 Event', false), _tab('🇮🇳 🇧🇩', false)]);
+  Widget _tab(String text, bool active) => Expanded(child: Container(margin: const EdgeInsets.only(right: 7), padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: active ? const Color(0xFFF0D9FF) : Colors.white, borderRadius: BorderRadius.circular(24)), child: Center(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: active ? const Color(0xFF9956E8) : Colors.black54, fontWeight: FontWeight.w900)))));
+
+  Widget _room(BuildContext context, List<String> r) => InkWell(onTap: () => openPage(context, PartyRoomPage(title: r[0])), borderRadius: BorderRadius.circular(20), child: Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 12, offset: Offset(0, 4))]), child: Row(children: [ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.network(r[4], width: 94, height: 94, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(width: 94, height: 94, color: const Color(0xFFE7D8F6), child: const Icon(Icons.groups, size: 40))), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('🇮🇳  ${r[0]}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), const SizedBox(height: 7), Text(r[1], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black45, fontSize: 14, fontWeight: FontWeight.w600)), const SizedBox(height: 12), Row(children: [_smallTag(r[3]), const Spacer(), Text('▮▮ ${r[2]}', style: const TextStyle(fontWeight: FontWeight.w900))]))]))]));
+  Widget _smallTag(String t) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: const Color(0xFFFFE5F5), borderRadius: BorderRadius.circular(13)), child: Text(t, style: const TextStyle(color: Color(0xFFDA67B2), fontSize: 11, fontWeight: FontWeight.w800)));
+  Widget _wideBanner(String a, String b) => Container(height: 86, margin: const EdgeInsets.only(top: 8), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF6B16C7), Color(0xFFB949D9)]), borderRadius: BorderRadius.circular(16)), child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(a, style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900)), Text(b, style: const TextStyle(color: Color(0xFFFFE15B), fontSize: 18, fontWeight: FontWeight.w900))])));
+}
+
+class MomentsScreen extends StatelessWidget {
+  const MomentsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(20, 16, 20, 20), children: [
+      Row(children: [const Text('Moments', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)), const Spacer(), const Icon(Icons.search_rounded, size: 30), const SizedBox(width: 16), const Icon(Icons.camera_alt_outlined, size: 27)]),
+      const SizedBox(height: 20),
+      Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: const Row(children: [CircleAvatar(radius: 28, child: Icon(Icons.person)), SizedBox(width: 14), Expanded(child: Text('Share a moment with WikaLive...', style: TextStyle(color: Colors.black38, fontSize: 16))), Icon(Icons.add_circle, color: Color(0xFFB65BEA), size: 32)])),
+      const SizedBox(height: 18),
+      _moment('✨ Trending on WikaLive', 'What is everyone watching today?', Icons.local_fire_department_rounded),
+      _moment('🎉 Party moments', 'Share your best party memories', Icons.celebration_rounded),
+      _moment('💜 New friends', 'Meet people and discover new rooms', Icons.people_alt_rounded),
+    ]));
+  }
+
+  Widget _moment(String title, String subtitle, IconData icon) => Container(margin: const EdgeInsets.only(bottom: 14), padding: const EdgeInsets.all(18), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFF2E6FF), Colors.white]), borderRadius: BorderRadius.circular(20)), child: Row(children: [Container(width: 58, height: 58, decoration: BoxDecoration(color: const Color(0xFFE7CCFF), borderRadius: BorderRadius.circular(17)), child: Icon(icon, color: const Color(0xFF9B52E5), size: 31)), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)), const SizedBox(height: 5), Text(subtitle, style: const TextStyle(color: Colors.black45))]), const Icon(Icons.chevron_right_rounded)]));
+}
+
+class MessagesScreen extends StatelessWidget {
+  const MessagesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(20, 16, 20, 20), children: [
+      Row(children: [const Text('Message', style: TextStyle(fontSize: 29, fontWeight: FontWeight.w900)), const SizedBox(width: 25), const Text('Friends', style: TextStyle(fontSize: 22, color: Colors.black45, fontWeight: FontWeight.w700)), const Spacer(), const Icon(Icons.settings_outlined, size: 29)]),
+      const SizedBox(height: 20),
+      Container(height: 55, padding: const EdgeInsets.symmetric(horizontal: 16), decoration: BoxDecoration(color: const Color(0xFFF0F0F3), borderRadius: BorderRadius.circular(28)), child: const Row(children: [Icon(Icons.search_rounded, color: Colors.black38), SizedBox(width: 12), Text("Please enter user's name", style: TextStyle(color: Colors.black26, fontSize: 16, fontWeight: FontWeight.w700)), Spacer(), Icon(Icons.tune_rounded)])),
+      const SizedBox(height: 22),
+      Row(children: [_quick('🦄', 'Crush Team'), _quick('❤️', 'New Follow'), _quick('👍', 'Interactive'), _quick('🎟', 'Event Center')]),
+      const SizedBox(height: 28),
+      _membership(),
+    ]));
+  }
+
+  Widget _quick(String icon, String label) => Expanded(child: Column(children: [Container(width: 64, height: 64, decoration: BoxDecoration(shape: BoxShape.circle, gradient: const LinearGradient(colors: [Color(0xFFFFB30F), Color(0xFFE957B4)])), alignment: Alignment.center, child: Text(icon, style: const TextStyle(fontSize: 31))), const SizedBox(height: 9), Text(label, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))]));
+  Widget _membership() => Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: const Row(children: [CircleAvatar(radius: 31, backgroundColor: Color(0xFFFFB51B), child: Icon(Icons.home_rounded, color: Colors.white, size: 34)), SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('My Party Membership', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), SizedBox(height: 7), Text("You haven't joined any rooms yet", style: TextStyle(color: Colors.black38, fontWeight: FontWeight.w700))]))]));
+}
+
+class MeScreen extends StatelessWidget {
+  const MeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const SizedBox.shrink();
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+      builder: (context, snap) {
+        final data = snap.data?.data() ?? {};
+        final name = (data['name'] ?? FirebaseAuth.instance.currentUser?.displayName ?? 'WikaLive User').toString();
+        final coins = (data['coins'] ?? 0).toString();
+        return SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(20, 14, 20, 20), children: [
+          Row(children: [const Spacer(), const Icon(Icons.search_rounded, size: 30), const SizedBox(width: 15), const Icon(Icons.settings_outlined, size: 28)]),
+          const SizedBox(height: 14),
+          Row(children: [const CircleAvatar(radius: 48, backgroundColor: Color(0xFFE8D5F8), child: Icon(Icons.person, size: 54)), const SizedBox(width: 17), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)), const SizedBox(height: 9), const Text('🇮🇳  ♀18   🏅11   💙0', style: TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 8), Text('ID: ${uid.substring(0, 8)}', style: const TextStyle(color: Colors.black38, fontWeight: FontWeight.w700))]))]),
+          const SizedBox(height: 25),
+          const Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [_stat('0', 'Friends'), _stat('2', 'Follow'), _stat('0', 'Followers'), _stat('2', 'Visitors')]),
+          const SizedBox(height: 22),
+          _king(),
+          const SizedBox(height: 14),
+          Row(children: [Expanded(child: _wallet(context, '🪙', coins, 'Recharge', const Color(0xFFFFF3BE), () => openPage(context, const WalletPage()))), const SizedBox(width: 12), Expanded(child: _wallet(context, '💎', '0', 'Gems', const Color(0xFFF0E0FF), null))]),
+          const SizedBox(height: 14),
+          _goldBanner(),
+          const SizedBox(height: 16),
+          _menuGrid(context, true),
+          const SizedBox(height: 14),
+          _menuGrid(context, false),
+        ]));
+      },
     );
+  }
+
+  static Widget _stat(String n, String l) => Column(children: [Text(n, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)), const SizedBox(height: 7), Text(l, style: const TextStyle(color: Colors.black45, fontWeight: FontWeight.w700))]);
+  Widget _king() => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF4A260A), Color(0xFF8A5B18)]), borderRadius: BorderRadius.circular(18)), child: Row(children: [const Text('💎', style: TextStyle(fontSize: 38)), const SizedBox(width: 12), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('King of Kings', style: TextStyle(color: Color(0xFFFFE2A0), fontSize: 18, fontWeight: FontWeight.w900)), SizedBox(height: 5), Text('Become and enjoy exclusive privileges', style: TextStyle(color: Color(0xFFFFE2A0), fontWeight: FontWeight.w600))])), Container(padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10), decoration: BoxDecoration(color: const Color(0xFFFFC13D), borderRadius: BorderRadius.circular(20)), child: const Text('Activate', style: TextStyle(fontWeight: FontWeight.w900)))]));
+  Widget _wallet(BuildContext context, String icon, String value, String label, Color color, VoidCallback? onTap) => InkWell(onTap: onTap, borderRadius: BorderRadius.circular(18), child: Container(height: 112, padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(18)), child: Row(children: [Text(icon, style: const TextStyle(fontSize: 39)), const SizedBox(width: 9), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [if (onTap != null) Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFFCA3A), Color(0xFFFF8538)]), borderRadius: BorderRadius.circular(18)), child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900))), const SizedBox(height: 8), Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black87))]))]));
+  Widget _goldBanner() => Container(height: 105, decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF9A5716), Color(0xFFFFD45B), Color(0xFF8A4B12)]), borderRadius: BorderRadius.circular(16)), child: const Center(child: Text('Earn up to \$27\nby inviting new users', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900))));
+  Widget _menuGrid(BuildContext context, bool first) {
+    final items = first ? <List<dynamic>>[['📅', 'Task'], ['💗', 'Level'], ['💖', 'Fans Club'], ['🎮', 'Game'], ['🎒', 'Backpack'], ['🛍️', 'Dress Store'], ['🎟️', 'Event Center']] : <List<dynamic>>[['♛', 'VIP'], ['🛡️', 'Guardian'], ['↪️', 'Join agency'], ['🕵️', 'Real person detection'], ['❓', 'Help & Feedback'], ['🎧', 'Customer Service'], ['⚙️', 'Setting']];
+    return Container(padding: const EdgeInsets.fromLTRB(10, 20, 10, 14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)), child: Wrap(children: items.map((it) => SizedBox(width: MediaQuery.of(context).size.width / 4.6, height: 106, child: InkWell(onTap: () { if (it[1] == 'Wallet') openPage(context, const WalletPage()); }, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(it[0], style: const TextStyle(fontSize: 31)), const SizedBox(height: 8), Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: Text(it[1], textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)))])))).toList());
   }
 }
 
@@ -1240,232 +864,6 @@ class _ChatBubble extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(text),
-      ),
-    );
-  }
-}
-
-class PartyScreen extends StatelessWidget {
-  const PartyScreen({super.key});
-
-  static const rooms = [
-    ['hotty hot 🔥🔥🔥', 'Welcome to party!! we build friends together', '31', 'HH'],
-    ['SINGH Agency', 'Radhe krishna 🦚', '4', 'SA'],
-    ["Suman's room", "Welcome to my party room, let's chat", '3', 'SR'],
-    ["suhani's room", "Welcome to my party room, let's chat", '2', 'SU'],
-    ["humko v Patao's room", "Welcome to my party room, let's chat", '8', 'HP'],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(child: _header()),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 30),
-          sliver: SliverList.builder(
-            itemCount: rooms.length,
-            itemBuilder: (context, i) => _room(context, rooms[i], i),
-          ),
-        ),
-      ],
-    );
-  }
-
-  static Widget _header() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 54, 20, 16),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFF0ECFF), Color(0xFFFDF9FF)],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Me',
-                style: TextStyle(
-                  color: textMuted,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 22),
-              const Text(
-                'Party',
-                style: TextStyle(
-                  color: textMain,
-                  fontSize: 23,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const Spacer(),
-              const Icon(Icons.search_rounded, size: 29),
-              const SizedBox(width: 14),
-              const Icon(Icons.workspace_premium_rounded, size: 29),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _tab('Popular', true),
-              const SizedBox(width: 8),
-              _tab('PK Battle', false),
-              const SizedBox(width: 8),
-              _tab('Event', false),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Widget _tab(String text, bool active) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: active ? const Color(0xFFECD6FF) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: active ? accent : textMain,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-
-  static Widget _room(
-    BuildContext context,
-    List<String> room,
-    int index,
-  ) {
-    return InkWell(
-      onTap: () => openPage(
-        context,
-        PartyRoomPage(title: room[0]),
-      ),
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: const [
-            BoxShadow(
-              blurRadius: 10,
-              offset: Offset(0, 4),
-              color: Color(0x12000000),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 92,
-              height: 92,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                gradient: LinearGradient(
-                  colors: index.isEven
-                      ? const [Color(0xFFFF7DB6), Color(0xFF7A49DB)]
-                      : const [Color(0xFF87CFFF), Color(0xFFAF7CF4)],
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  room[3],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 22,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '🇮🇳 ${room[0]}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: textMain,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    room[1],
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: textMuted,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 9),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEBD7FF),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Lv.${index + 1}',
-                          style: const TextStyle(
-                            color: accent,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Music Party',
-                        style: TextStyle(
-                          color: Color(0xFFBD55D9),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              children: [
-                const Icon(
-                  Icons.bar_chart_rounded,
-                  color: accent,
-                ),
-                Text(
-                  room[2],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: textMain,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1713,228 +1111,6 @@ class _PartyRoomState
   }
 }
 
-class MessagesScreen extends StatelessWidget {
-  const MessagesScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 58, 20, 16),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFFF0ECFF), Color(0xFFFDF9FF)],
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Text(
-                      'Message',
-                      style: TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.w900,
-                        color: textMain,
-                      ),
-                    ),
-                    SizedBox(width: 24),
-                    Text(
-                      'Friends',
-                      style: TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.w700,
-                        color: textMuted,
-                      ),
-                    ),
-                    Spacer(),
-                    Icon(Icons.settings_outlined, size: 27),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  height: 50,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.search_rounded, color: textMuted),
-                      SizedBox(width: 10),
-                      Text(
-                        "Please enter user's name",
-                        style: TextStyle(
-                          color: Color(0xFFB5B3B8),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Spacer(),
-                      Icon(Icons.sort_rounded),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _quick('🦄', 'Crush Team'),
-                    _quick('❤️', 'New Follow'),
-                    _quick('👍', 'Interactive'),
-                    _quick('🎟️', 'Event Center'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.all(18),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              _membership(),
-              const SizedBox(height: 14),
-              _messageRow(
-                context,
-                'Mia',
-                'Welcome to WikaLive 💜',
-                Icons.favorite_rounded,
-              ),
-              _messageRow(
-                context,
-                'Luna',
-                'Come join my live room!',
-                Icons.live_tv_rounded,
-              ),
-            ]),
-          ),
-        ),
-      ],
-    );
-  }
-
-  static Widget _quick(String emoji, String label) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 32,
-          backgroundColor: Colors.white,
-          child: Text(emoji, style: const TextStyle(fontSize: 27)),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: const TextStyle(
-            color: textMain,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
-
-  static Widget _membership() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 31,
-            backgroundColor: Color(0xFFFFB62F),
-            child: Icon(Icons.home_rounded, color: Colors.white, size: 32),
-          ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'My Party Membership',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: textMain,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  "You haven't joined any rooms yet",
-                  style: TextStyle(
-                    color: textMuted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Widget _messageRow(
-    BuildContext context,
-    String name,
-    String preview,
-    IconData icon,
-  ) {
-    return InkWell(
-      onTap: () => openPage(context, ChatPage(name: name, initial: name.isNotEmpty ? name[0] : 'W')),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0x14000000))),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: const Color(0xFFE4D3FF),
-              child: Text(
-                name[0],
-                style: const TextStyle(
-                  color: accent,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: textMain,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    preview,
-                    style: const TextStyle(
-                      color: textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(icon, color: accent),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class ChatPage extends StatefulWidget {
   final String name;
   final String initial;
@@ -2081,367 +1257,6 @@ class _ChatState extends State<ChatPage> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class MeScreen extends StatelessWidget {
-  const MeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      return const Center(child: Text('Please login again'));
-    }
-
-    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .snapshots(),
-      builder: (context, snapshot) {
-        final data = snapshot.data?.data();
-        final name =
-            (data?['name'] ?? user.displayName ?? 'WikaLive User').toString();
-        final email = (data?['email'] ?? user.email ?? '').toString();
-        final coins = data?['coins'] is num
-            ? (data!['coins'] as num).toInt()
-            : 0;
-
-        return CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 54, 20, 20),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFFF0ECFF), Color(0xFFFDF9FF), bg],
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        const Spacer(),
-                        IconButton(
-                          onPressed: () => openPage(
-                            context,
-                            const SettingsPage(),
-                          ),
-                          icon: const Icon(Icons.settings_outlined),
-                        ),
-                      ],
-                    ),
-                    CircleAvatar(
-                      radius: 53,
-                      backgroundColor: const Color(0xFF6543B7),
-                      child: Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : 'W',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 40,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        color: textMain,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    if (email.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        email,
-                        style: const TextStyle(
-                          color: textMuted,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _Stat(value: '0', label: 'Friends'),
-                        _Stat(value: '0', label: 'Follow'),
-                        _Stat(value: '0', label: 'Followers'),
-                        _Stat(value: '0', label: 'Visitors'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  _goldBanner(context),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _coinCard(
-                          'Coins',
-                          coins.toString(),
-                          Icons.monetization_on_rounded,
-                          const Color(0xFFFFF3BF),
-                          () => openPage(context, const WalletPage()),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _coinCard(
-                          'Gems',
-                          '0',
-                          Icons.diamond_rounded,
-                          const Color(0xFFEFE0FF),
-                          () => msg(context, 'Gems'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  _featureGrid(context),
-                  const SizedBox(height: 14),
-                  _settingsGrid(context),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    height: 50,
-                    child: FilledButton.icon(
-                      onPressed: () async {
-                        await FirebaseAuth.instance.signOut();
-                      },
-                      icon: const Icon(Icons.logout_rounded),
-                      label: const Text(
-                        'Logout',
-                        style: TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                  ),
-                ]),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  static Widget _goldBanner(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4A270D), Color(0xFF8D5315)],
-        ),
-      ),
-      child: Row(
-        children: [
-          const Text('💎', style: TextStyle(fontSize: 35)),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'King of Kings',
-                  style: TextStyle(
-                    color: Color(0xFFFFE0A0),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                  ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  'Become and enjoy exclusive privileges',
-                  style: TextStyle(
-                    color: Color(0xFFFFE0A0),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          FilledButton(
-            onPressed: () => msg(context, 'VIP activation coming soon'),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFFFBE45),
-              foregroundColor: textMain,
-            ),
-            child: const Text('Activate'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Widget _coinCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        height: 112,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 38, color: accent),
-            const Spacer(),
-            Text(
-              value,
-              style: const TextStyle(
-                color: textMain,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            Text(
-              title,
-              style: const TextStyle(
-                color: textMuted,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static Widget _featureGrid(BuildContext context) {
-    final items = [
-      ['🎁', 'Gifts', () => openPage(context, const GiftsPage())],
-      ['💗', 'Fans Club', () => msg(context, 'Fans Club')],
-      ['🎮', 'Game', () => msg(context, 'Games')],
-      ['🎒', 'Backpack', () => msg(context, 'Backpack')],
-      ['🏪', 'Store', () => msg(context, 'Store')],
-      ['🎟️', 'Events', () => msg(context, 'Events')],
-    ];
-
-    return _whitePanel(
-      children: items.map((item) {
-        return InkWell(
-          onTap: item[2] as VoidCallback,
-          child: Column(
-            children: [
-              Text(item[0] as String, style: const TextStyle(fontSize: 28)),
-              const SizedBox(height: 6),
-              Text(
-                item[1] as String,
-                style: const TextStyle(
-                  color: textMain,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  static Widget _settingsGrid(BuildContext context) {
-    final items = [
-      ['👑', 'VIP', () => msg(context, 'VIP')],
-      ['🛡️', 'Guardian', () => msg(context, 'Guardian')],
-      ['↪️', 'Join agency', () => openPage(context, const AgencyPage())],
-      ['🧑', 'Real person', () => msg(context, 'Verification')],
-      ['❓', 'Help', () => msg(context, 'Help & Feedback')],
-      ['🎧', 'Customer Service', () => msg(context, 'Customer Service')],
-    ];
-
-    return _whitePanel(
-      children: items.map((item) {
-        return InkWell(
-          onTap: item[2] as VoidCallback,
-          child: Column(
-            children: [
-              Text(item[0] as String, style: const TextStyle(fontSize: 26)),
-              const SizedBox(height: 6),
-              Text(
-                item[1] as String,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: textMain,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  static Widget _whitePanel({required List<Widget> children}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: GridView.count(
-        crossAxisCount: 3,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        childAspectRatio: 1.25,
-        children: children,
-      ),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  final String value;
-  final String label;
-
-  const _Stat({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: textMain,
-            fontSize: 17,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          label,
-          style: const TextStyle(
-            color: textMuted,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
     );
   }
 }
