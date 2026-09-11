@@ -17,10 +17,243 @@ class WikaLiveApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0B0B12),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: const AuthPage(),
     );
   }
 }
+
+// ==================== LOGIN / SIGNUP ====================
+
+class AuthPage extends StatefulWidget {
+  const AuthPage({super.key});
+
+  @override
+  State<AuthPage> createState() => _AuthPageState();
+}
+
+class _AuthPageState extends State<AuthPage> {
+  bool isLogin = true;
+  bool obscurePassword = true;
+
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  void submit() {
+    if (emailController.text.trim().isEmpty ||
+        passwordController.text.trim().isEmpty ||
+        (!isLogin && nameController.text.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all required fields'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const HomePage(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 55),
+
+              Center(
+                child: Container(
+                  width: 82,
+                  height: 82,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF171722),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const Icon(
+                    Icons.favorite,
+                    size: 44,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 25),
+
+              Center(
+                child: Text(
+                  'WikaLive',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              Center(
+                child: Text(
+                  isLogin
+                      ? 'Login to continue'
+                      : 'Create your WikaLive account',
+                  style: const TextStyle(
+                    color: Colors.white60,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 40),
+
+              if (!isLogin) ...[
+                const Text(
+                  'Name',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter your name',
+                    prefixIcon: const Icon(Icons.person_outline),
+                    filled: true,
+                    fillColor: const Color(0xFF171722),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ],
+
+              const Text(
+                'Email',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: 'Enter your email',
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  filled: true,
+                  fillColor: const Color(0xFF171722),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              const Text(
+                'Password',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              TextField(
+                controller: passwordController,
+                obscureText: obscurePassword,
+                decoration: InputDecoration(
+                  hintText: 'Enter your password',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        obscurePassword = !obscurePassword;
+                      });
+                    },
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFF171722),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: submit,
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  child: Text(
+                    isLogin ? 'Login' : 'Create Account',
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    setState(() {
+                      isLogin = !isLogin;
+                    });
+                  },
+                  child: Text(
+                    isLogin
+                        ? 'Create a new account'
+                        : 'Already have an account? Login',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==================== HOME ====================
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -68,9 +301,24 @@ class _HomePageState extends State<HomePage> {
         index: selected,
         children: const [
           HomeScreen(),
-          Center(child: Text('Live', style: TextStyle(fontSize: 30))),
-          Center(child: Text('Party', style: TextStyle(fontSize: 30))),
-          Center(child: Text('Messages', style: TextStyle(fontSize: 30))),
+          Center(
+            child: Text(
+              'Live',
+              style: TextStyle(fontSize: 30),
+            ),
+          ),
+          Center(
+            child: Text(
+              'Party',
+              style: TextStyle(fontSize: 30),
+            ),
+          ),
+          Center(
+            child: Text(
+              'Messages',
+              style: TextStyle(fontSize: 30),
+            ),
+          ),
           MeScreen(),
         ],
       ),
@@ -114,6 +362,8 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// ==================== HOME SCREEN ====================
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -131,7 +381,9 @@ class HomeScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
+
           const SizedBox(height: 8),
+
           const Text(
             'Watch live, join parties and connect with people.',
             style: TextStyle(
@@ -139,6 +391,7 @@ class HomeScreen extends StatelessWidget {
               fontSize: 15,
             ),
           ),
+
           const SizedBox(height: 24),
 
           Row(
@@ -150,7 +403,9 @@ class HomeScreen extends StatelessWidget {
                   onTap: () {},
                 ),
               ),
+
               const SizedBox(width: 12),
+
               Expanded(
                 child: _MenuCard(
                   icon: Icons.groups,
@@ -216,6 +471,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                       ),
+
                       const Positioned(
                         left: 12,
                         bottom: 14,
@@ -238,6 +494,8 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
+
+// ==================== MENU CARD ====================
 
 class _MenuCard extends StatelessWidget {
   final IconData icon;
@@ -264,8 +522,13 @@ class _MenuCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 34),
+            Icon(
+              icon,
+              size: 34,
+            ),
+
             const SizedBox(height: 8),
+
             Text(
               title,
               style: const TextStyle(
@@ -279,6 +542,8 @@ class _MenuCard extends StatelessWidget {
   }
 }
 
+// ==================== ME ====================
+
 class MeScreen extends StatelessWidget {
   const MeScreen({super.key});
 
@@ -289,9 +554,14 @@ class MeScreen extends StatelessWidget {
       children: [
         const CircleAvatar(
           radius: 48,
-          child: Icon(Icons.person, size: 50),
+          child: Icon(
+            Icons.person,
+            size: 50,
+          ),
         ),
+
         const SizedBox(height: 14),
+
         const Center(
           child: Text(
             'WikaLive User',
@@ -301,17 +571,20 @@ class MeScreen extends StatelessWidget {
             ),
           ),
         ),
+
         const SizedBox(height: 25),
 
-        _ProfileButton(
+        const _ProfileButton(
           icon: Icons.account_balance_wallet_outlined,
           title: 'Wallet',
         ),
-        _ProfileButton(
+
+        const _ProfileButton(
           icon: Icons.card_giftcard,
           title: 'My Gifts',
         ),
-        _ProfileButton(
+
+        const _ProfileButton(
           icon: Icons.settings_outlined,
           title: 'Settings',
         ),
@@ -319,6 +592,8 @@ class MeScreen extends StatelessWidget {
     );
   }
 }
+
+// ==================== PROFILE BUTTON ====================
 
 class _ProfileButton extends StatelessWidget {
   final IconData icon;
