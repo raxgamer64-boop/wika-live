@@ -14,12 +14,12 @@ class WikaLiveApp extends StatelessWidget {
       title: 'WikaLive',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0D0B12),
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFF0D0D12),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF7C4DFF),
+          seedColor: Colors.pink,
           brightness: Brightness.dark,
         ),
-        useMaterial3: true,
       ),
       home: const AuthPage(),
     );
@@ -36,20 +36,16 @@ class AuthPage extends StatefulWidget {
 }
 
 class _AuthPageState extends State<AuthPage> {
-  bool signup = false;
-  bool showPassword = false;
-
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  bool login = true;
+  final email = TextEditingController();
+  final password = TextEditingController();
+  final name = TextEditingController();
 
   void submit() {
-    if (emailController.text.trim().isEmpty ||
-        passwordController.text.trim().isEmpty ||
-        (signup && nameController.text.trim().isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
-      );
+    if ((login && email.text.isEmpty) ||
+        password.text.isEmpty ||
+        (!login && name.text.isEmpty)) {
+      _message(context, 'Please fill all required fields');
       return;
     }
 
@@ -63,119 +59,80 @@ class _AuthPageState extends State<AuthPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 70),
-              const Text(
-                'WikaLive',
-                style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.live_tv_rounded,
+                  size: 70,
+                  color: Colors.pink,
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                signup ? 'Create your account' : 'Welcome back',
-                style: const TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 12),
+                const Text(
+                  'WikaLive',
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 35),
-
-              if (signup) ...[
+                const SizedBox(height: 8),
+                Text(
+                  login ? 'Welcome back' : 'Create your account',
+                  style: const TextStyle(color: Colors.white60),
+                ),
+                const SizedBox(height: 35),
+                if (!login)
+                  TextField(
+                    controller: name,
+                    decoration: const InputDecoration(
+                      labelText: 'Name',
+                      prefixIcon: Icon(Icons.person_outline),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                if (!login) const SizedBox(height: 15),
                 TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Name',
-                    prefixIcon: const Icon(Icons.person_outline),
-                    filled: true,
-                    fillColor: const Color(0xFF181620),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
+                  controller: email,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 16),
-              ],
-
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  filled: true,
-                  fillColor: const Color(0xFF181620),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
+                const SizedBox(height: 15),
+                TextField(
+                  controller: password,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: passwordController,
-                obscureText: !showPassword,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    onPressed: () {
-                      setState(() => showPassword = !showPassword);
-                    },
-                    icon: Icon(
-                      showPassword
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                    ),
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFF181620),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
+                const SizedBox(height: 22),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: submit,
+                    child: Text(login ? 'Login' : 'Create Account'),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 25),
-
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: submit,
-                  child: Text(
-                    signup ? 'Create Account' : 'Login',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              Center(
-                child: TextButton(
+                const SizedBox(height: 15),
+                TextButton(
                   onPressed: () {
-                    setState(() => signup = !signup);
+                    setState(() => login = !login);
                   },
                   child: Text(
-                    signup
-                        ? 'Already have an account? Login'
-                        : 'Create a new account',
+                    login
+                        ? 'Create a new account'
+                        : 'Already have an account? Login',
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -193,7 +150,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int selectedIndex = 0;
+  int index = 0;
 
   final pages = const [
     HomeScreen(),
@@ -206,14 +163,12 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: pages[selectedIndex],
+      body: pages[index],
       bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() => selectedIndex = index);
+        selectedIndex: index,
+        onDestinationSelected: (i) {
+          setState(() => index = i);
         },
-        backgroundColor: const Color(0xFF121019),
-        indicatorColor: const Color(0xFF302B45),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -246,207 +201,144 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-/* ========================= HOME SCREEN ========================= */
-
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 24, 0, 30),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'WikaLive',
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                    ),
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'WikaLive',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.notifications_none, size: 30),
+              ),
+              IconButton(
+                onPressed: () => _open(context, const NotificationsPage()),
+                icon: const Icon(Icons.notifications_none),
+              ),
+              IconButton(
+                onPressed: () => _open(context, const WalletPage()),
+                icon: const Icon(Icons.account_balance_wallet_outlined),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF8E2DE2), Color(0xFFFF416C)],
+              ),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome to WikaLive',
+                  style: TextStyle(
+                    fontSize: 23,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.account_balance_wallet_outlined,
-                      size: 29),
-                ),
-                const SizedBox(width: 15),
+                SizedBox(height: 6),
+                Text('Watch live. Join parties. Meet people.'),
               ],
             ),
-
-            const SizedBox(height: 55),
-
-            const Text(
-              'Welcome to WikaLive',
-              style: TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            const Text(
-              'Watch live, join parties and connect with people.',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
-            ),
-
-            const SizedBox(height: 55),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _HomeCard(
-                    icon: Icons.live_tv,
-                    title: 'Live',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const LiveScreen(),
-                        ),
-                      );
-                    },
-                  ),
+          ),
+          const SizedBox(height: 22),
+          Row(
+            children: [
+              Expanded(
+                child: _homeCard(
+                  context,
+                  Icons.live_tv,
+                  'Live',
+                  const LiveScreen(),
                 ),
-                const SizedBox(width: 25),
-                Expanded(
-                  child: _HomeCard(
-                    icon: Icons.groups,
-                    title: 'Party',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const PartyScreen(),
-                        ),
-                      );
-                    },
-                  ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _homeCard(
+                  context,
+                  Icons.groups,
+                  'Party',
+                  const PartyScreen(),
                 ),
-                const SizedBox(width: 30),
-              ],
-            ),
-
-            const SizedBox(height: 60),
-
-            const Text(
-              'Popular Live',
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
               ),
-            ),
-
-            const SizedBox(height: 25),
-
-            SizedBox(
-              height: 390,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: const [
-                  _PopularCard(name: 'Live Host'),
-                  _PopularCard(name: 'Live Host'),
-                  _PopularCard(name: 'Live Host'),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HomeCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  const _HomeCard({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 210,
-        decoration: BoxDecoration(
-          color: const Color(0xFF181620),
-          borderRadius: BorderRadius.circular(35),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 58),
-            const SizedBox(height: 20),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PopularCard extends StatelessWidget {
-  final String name;
-
-  const _PopularCard({required this.name});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 300,
-      margin: const EdgeInsets.only(right: 25),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF5D32C8),
-            Color(0xFF110D1B),
-          ],
-        ),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.all(22),
-        child: Align(
-          alignment: Alignment.bottomLeft,
-          child: Text(
-            'LIVE\nLive Host',
+            ],
+          ),
+          const SizedBox(height: 25),
+          const Text(
+            'Popular Live',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 21,
               fontWeight: FontWeight.bold,
             ),
           ),
-        ),
+          const SizedBox(height: 12),
+          ...[
+            ['Mia', '2.4K viewers'],
+            ['Luna', '1.8K viewers'],
+            ['Sofia', '1.2K viewers'],
+          ].map(
+            (x) => Card(
+              child: ListTile(
+                leading: const CircleAvatar(
+                  child: Icon(Icons.person),
+                ),
+                title: Text(x[0]),
+                subtitle: Text(x[1]),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _open(
+                  context,
+                  LiveRoomPage(host: x[0]),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+Widget _homeCard(
+  BuildContext context,
+  IconData icon,
+  String title,
+  Widget page,
+) {
+  return InkWell(
+    onTap: () => _open(context, page),
+    borderRadius: BorderRadius.circular(18),
+    child: Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF19191F),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 34, color: Colors.pink),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /* ========================= LIVE ========================= */
@@ -455,12 +347,12 @@ class LiveScreen extends StatelessWidget {
   const LiveScreen({super.key});
 
   final hosts = const [
-    ['Mia', '2.4K viewers'],
-    ['Luna', '1.8K viewers'],
-    ['Sofia', '3.1K viewers'],
-    ['Emma', '956 viewers'],
-    ['Nina', '2.2K viewers'],
-    ['Ava', '1.4K viewers'],
+    ['Mia', '2.4K'],
+    ['Luna', '1.8K'],
+    ['Sofia', '1.2K'],
+    ['Emma', '980'],
+    ['Nina', '760'],
+    ['Ava', '620'],
   ];
 
   @override
@@ -468,508 +360,133 @@ class LiveScreen extends StatelessWidget {
     return SafeArea(
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(25, 22, 20, 10),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 15, 16, 10),
             child: Row(
               children: [
-                const Text(
+                Text(
                   'Live',
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 27,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.search, size: 30),
-                ),
+                Spacer(),
+                Icon(Icons.search),
               ],
             ),
           ),
-
           SizedBox(
-            height: 70,
+            height: 45,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               children: const [
-                _LiveCategory('For You', true),
-                _LiveCategory('Popular', false),
-                _LiveCategory('New', false),
-                _LiveCategory('PK', false),
-                _LiveCategory('Music', false),
-              ],
+                'For You',
+                'Popular',
+                'New',
+                'PK',
+                'Music',
+              ].map(
+                (x) => Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 7),
+                  child: Chip(label: Text(x)),
+                ),
+              ).toList(),
             ),
           ),
-
-          const Padding(
-            padding: EdgeInsets.fromLTRB(32, 20, 0, 20),
-            child: Align(
-              alignment: Alignment.centerLeft,
+          const SizedBox(height: 8),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Live Now',
                 style: TextStyle(
-                  fontSize: 30,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
-
+          const SizedBox(height: 10),
           Expanded(
             child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.all(12),
               itemCount: hosts.length,
               gridDelegate:
                   const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 24,
-                mainAxisSpacing: 24,
-                childAspectRatio: 0.72,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: .78,
               ),
-              itemBuilder: (context, index) {
-                final host = hosts[index];
-
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => LiveRoomPage(
-                          hostName: host[0],
-                          viewers: host[1],
-                        ),
-                      ),
-                    );
-                  },
+              itemBuilder: (_, i) {
+                final h = hosts[i];
+                return InkWell(
+                  onTap: () => _open(
+                    context,
+                    LiveRoomPage(host: h[0]),
+                  ),
+                  borderRadius: BorderRadius.circular(18),
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFF5D32C8),
-                          Color(0xFF130F20),
-                        ],
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        children: [
-                          Align(
-                            alignment: Alignment.topLeft,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 13,
-                                vertical: 9,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.redAccent,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text(
-                                'LIVE',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const Spacer(),
-                          const CircleAvatar(
-                            radius: 52,
-                            backgroundColor: Color(0xFF51378F),
-                            child: Icon(
-                              Icons.person,
-                              size: 55,
-                            ),
-                          ),
-                          const Spacer(),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              host[0],
-                              style: const TextStyle(
-                                fontSize: 23,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              '◉  ${host[1]}',
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LiveCategory extends StatelessWidget {
-  final String title;
-  final bool selected;
-
-  const _LiveCategory(this.title, this.selected);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(right: 15),
-      padding: const EdgeInsets.symmetric(horizontal: 30),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: selected
-            ? const Color(0xFF302B45)
-            : const Color(0xFF17151F),
-        borderRadius: BorderRadius.circular(40),
-      ),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.bold,
-          color: selected ? Colors.white : Colors.grey,
-        ),
-      ),
-    );
-  }
-}
-
-/* ========================= LIVE ROOM ========================= */
-
-class LiveRoomPage extends StatefulWidget {
-  final String hostName;
-  final String viewers;
-
-  const LiveRoomPage({
-    super.key,
-    required this.hostName,
-    required this.viewers,
-  });
-
-  @override
-  State<LiveRoomPage> createState() => _LiveRoomPageState();
-}
-
-class _LiveRoomPageState extends State<LiveRoomPage> {
-  bool following = false;
-
-  final messages = <String>[
-    'Welcome to the live!',
-    'Hello 👋',
-    'Nice live ❤️',
-  ];
-
-  final controller = TextEditingController();
-
-  void sendMessage() {
-    final text = controller.text.trim();
-
-    if (text.isEmpty) return;
-
-    setState(() {
-      messages.add(text);
-      controller.clear();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF43219A),
-                  Color(0xFF0B0910),
-                ],
-              ),
-            ),
-          ),
-
-          SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back),
-                      ),
-                      const CircleAvatar(
-                        child: Icon(Icons.person),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.hostName,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            widget.viewers,
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() => following = !following);
-                        },
-                        child: Text(
-                          following ? 'Following' : 'Follow',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 300),
-
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: messages.length,
-                    itemBuilder: (_, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 9),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Text(messages[index]),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(15, 5, 15, 15),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: controller,
-                          decoration: InputDecoration(
-                            hintText: 'Say something...',
-                            filled: true,
-                            fillColor: Colors.black54,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: sendMessage,
-                        icon: const Icon(Icons.send),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          showModalBottomSheet(
-                            context: context,
-                            builder: (_) => const _GiftSheet(),
-                          );
-                        },
-                        icon: const Icon(Icons.card_giftcard),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GiftSheet extends StatelessWidget {
-  const _GiftSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    final gifts = ['❤️', '🌹', '🎁', '💎', '🔥'];
-
-    return Container(
-      padding: const EdgeInsets.all(25),
-      height: 230,
-      child: Column(
-        children: [
-          const Text(
-            'Send Gift',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 25),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: gifts.map((gift) {
-              return GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Text(
-                  gift,
-                  style: const TextStyle(fontSize: 42),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/* ========================= PARTY ========================= */
-
-class PartyScreen extends StatelessWidget {
-  const PartyScreen({super.key});
-
-  final rooms = const [
-    ['Music Party', '128 people'],
-    ['Fun & Chat', '86 people'],
-    ['Night Party', '214 people'],
-    ['Friends Room', '64 people'],
-    ['Gaming Party', '156 people'],
-    ['Talk Room', '92 people'],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(25, 22, 20, 20),
-            child: Row(
-              children: [
-                const Text(
-                  'Party',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.search, size: 30),
-                ),
-                IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const CreatePartyPage(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.add_circle_outline, size: 30),
-                ),
-              ],
-            ),
-          ),
-
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 25),
-              itemCount: rooms.length,
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 18,
-                mainAxisSpacing: 18,
-                childAspectRatio: 0.88,
-              ),
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PartyRoomPage(
-                          title: rooms[index][0],
-                          members: rooms[index][1],
-                        ),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF4D2AA5),
-                          Color(0xFF171321),
-                        ],
+                      borderRadius: BorderRadius.circular(18),
+                      gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
+                        colors: [
+                          Colors.pink.shade900,
+                          Colors.deepPurple.shade900,
+                        ],
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Stack(
                       children: [
-                        const Icon(
-                          Icons.groups,
-                          size: 55,
-                        ),
-                        const Spacer(),
-                        Text(
-                          rooms[index][0],
-                          style: const TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.bold,
+                        const Center(
+                          child: Icon(
+                            Icons.person,
+                            size: 70,
+                            color: Colors.white38,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '👥 ${rooms[index][1]}',
-                          style: const TextStyle(
-                            color: Colors.grey,
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'LIVE',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 10,
+                          left: 10,
+                          right: 10,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  h[0],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              Text('${h[1]} 👁'),
+                            ],
                           ),
                         ),
                       ],
@@ -985,45 +502,285 @@ class PartyScreen extends StatelessWidget {
   }
 }
 
-class CreatePartyPage extends StatelessWidget {
-  const CreatePartyPage({super.key});
+class LiveRoomPage extends StatefulWidget {
+  final String host;
+
+  const LiveRoomPage({
+    super.key,
+    required this.host,
+  });
+
+  @override
+  State<LiveRoomPage> createState() => _LiveRoomPageState();
+}
+
+class _LiveRoomPageState extends State<LiveRoomPage> {
+  bool following = false;
+  final controller = TextEditingController();
+
+  final messages = [
+    'Welcome to the live ❤️',
+    'Hello everyone!',
+    'Nice live 🔥',
+  ];
+
+  void send() {
+    if (controller.text.trim().isEmpty) return;
+    setState(() {
+      messages.add(controller.text.trim());
+      controller.clear();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final titleController = TextEditingController();
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Party'),
+        title: Text(widget.host),
+        actions: [
+          IconButton(
+            onPressed: () => _message(context, 'Share opened'),
+            icon: const Icon(Icons.share),
+          ),
+          IconButton(
+            onPressed: () => _message(context, 'Report option'),
+            icon: const Icon(Icons.more_vert),
+          ),
+        ],
       ),
+      body: Column(
+        children: [
+          Container(
+            height: 260,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF301934),
+                  Color(0xFF6A1B9A),
+                ],
+              ),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.person,
+                size: 100,
+                color: Colors.white30,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                const CircleAvatar(
+                  child: Icon(Icons.person),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.host,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 17,
+                    ),
+                  ),
+                ),
+                OutlinedButton(
+                  onPressed: () {
+                    setState(() => following = !following);
+                  },
+                  child: Text(
+                    following ? 'Following' : 'Follow',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: messages.length,
+              itemBuilder: (_, i) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Text(messages[i]),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: () => _openGiftSheet(context),
+                  icon: const Icon(
+                    Icons.card_giftcard,
+                    color: Colors.pink,
+                  ),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    decoration: const InputDecoration(
+                      hintText: 'Say something...',
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: send,
+                  icon: const Icon(Icons.send),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/* ========================= PARTY ========================= */
+
+class PartyScreen extends StatelessWidget {
+  const PartyScreen({super.key});
+
+  final rooms = const [
+    'Music Party',
+    'Fun & Chat',
+    'Night Party',
+    'Friends Room',
+    'Gaming Party',
+    'Talk Room',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 15, 10, 10),
+            child: Row(
+              children: [
+                const Text(
+                  'Party',
+                  style: TextStyle(
+                    fontSize: 27,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => _open(
+                    context,
+                    const CreatePartyPage(),
+                  ),
+                  icon: const Icon(Icons.add_circle_outline),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: rooms.length,
+              gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1.1,
+              ),
+              itemBuilder: (_, i) {
+                return InkWell(
+                  onTap: () => _open(
+                    context,
+                    PartyRoomPage(room: rooms[i]),
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      color: const Color(0xFF19191F),
+                    ),
+                    child: Column(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.groups,
+                          size: 48,
+                          color: Colors.purpleAccent,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          rooms[i],
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        const Text(
+                          '12 people',
+                          style: TextStyle(
+                            color: Colors.white54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CreatePartyPage extends StatefulWidget {
+  const CreatePartyPage({super.key});
+
+  @override
+  State<CreatePartyPage> createState() => _CreatePartyPageState();
+}
+
+class _CreatePartyPageState extends State<CreatePartyPage> {
+  final controller = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Create Party')),
       body: Padding(
-        padding: const EdgeInsets.all(25),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             TextField(
-              controller: titleController,
-              decoration: InputDecoration(
+              controller: controller,
+              decoration: const InputDecoration(
                 labelText: 'Party name',
-                filled: true,
-                fillColor: const Color(0xFF181620),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
+                border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
+              height: 52,
+              child: FilledButton(
                 onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Party created successfully'),
-                    ),
+                  if (controller.text.trim().isEmpty) {
+                    _message(context, 'Enter party name');
+                    return;
+                  }
+                  _message(
+                    context,
+                    'Party created: ${controller.text.trim()}',
                   );
+                  Navigator.pop(context);
                 },
                 child: const Text('Create Party'),
               ),
@@ -1036,13 +793,11 @@ class CreatePartyPage extends StatelessWidget {
 }
 
 class PartyRoomPage extends StatefulWidget {
-  final String title;
-  final String members;
+  final String room;
 
   const PartyRoomPage({
     super.key,
-    required this.title,
-    required this.members,
+    required this.room,
   });
 
   @override
@@ -1050,12 +805,197 @@ class PartyRoomPage extends StatefulWidget {
 }
 
 class _PartyRoomPageState extends State<PartyRoomPage> {
+  bool mic = false;
+  bool speaker = true;
   final controller = TextEditingController();
 
-  final messages = <String>[
+  final chats = [
     'Welcome everyone 🎉',
     'Hello 👋',
     'Let’s party!',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.room),
+        actions: [
+          IconButton(
+            onPressed: () => _message(context, 'Share opened'),
+            icon: const Icon(Icons.share),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Container(
+            height: 210,
+            width: double.infinity,
+            color: const Color(0xFF171722),
+            child: const Center(
+              child: Icon(
+                Icons.groups,
+                size: 90,
+                color: Colors.white30,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              mainAxisAlignment:
+                  MainAxisAlignment.spaceEvenly,
+              children: [
+                _roundButton(
+                  mic ? Icons.mic : Icons.mic_off,
+                  () => setState(() => mic = !mic),
+                ),
+                _roundButton(
+                  speaker
+                      ? Icons.volume_up
+                      : Icons.volume_off,
+                  () => setState(
+                    () => speaker = !speaker,
+                  ),
+                ),
+                _roundButton(
+                  Icons.card_giftcard,
+                  () => _openGiftSheet(context),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: chats.length,
+              itemBuilder: (_, i) => Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 6),
+                child: Text(chats[i]),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    decoration: const InputDecoration(
+                      hintText: 'Message...',
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    if (controller.text.trim().isEmpty) return;
+                    setState(() {
+                      chats.add(controller.text.trim());
+                      controller.clear();
+                    });
+                  },
+                  icon: const Icon(Icons.send),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _roundButton(
+  IconData icon,
+  VoidCallback action,
+) {
+  return CircleAvatar(
+    radius: 25,
+    child: IconButton(
+      onPressed: action,
+      icon: Icon(icon),
+    ),
+  );
+}
+
+/* ========================= MESSAGES ========================= */
+
+class MessagesScreen extends StatelessWidget {
+  const MessagesScreen({super.key});
+
+  final people = const [
+    ['Mia', 'Hey 👋'],
+    ['Luna', 'Hello!'],
+    ['Sofia', 'How are you?'],
+    ['Emma', 'Nice to meet you'],
+    ['Nina', 'Hi 😊'],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Messages',
+                style: TextStyle(
+                  fontSize: 27,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: people.length,
+              itemBuilder: (_, i) {
+                return ListTile(
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.person),
+                  ),
+                  title: Text(people[i][0]),
+                  subtitle: Text(people[i][1]),
+                  trailing:
+                      const Icon(Icons.chevron_right),
+                  onTap: () => _open(
+                    context,
+                    ChatPage(name: people[i][0]),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ChatPage extends StatefulWidget {
+  final String name;
+
+  const ChatPage({
+    super.key,
+    required this.name,
+  });
+
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  final controller = TextEditingController();
+
+  final messages = [
+    'Hello 👋',
+    'How are you?',
   ];
 
   void send() {
@@ -1070,290 +1010,47 @@ class _PartyRoomPageState extends State<PartyRoomPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.title),
-            Text(
-              widget.members,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          Container(
-            height: 240,
-            margin: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF6234C8),
-                  Color(0xFF17121F),
-                ],
-              ),
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.groups,
-                size: 90,
-              ),
-            ),
-          ),
-
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(18),
-              itemCount: messages.length,
-              itemBuilder: (_, index) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(13),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF191720),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(messages[index]),
-                );
-              },
-            ),
-          ),
-
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      decoration: InputDecoration(
-                        hintText: 'Write a message...',
-                        filled: true,
-                        fillColor: const Color(0xFF191720),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: send,
-                    icon: const Icon(Icons.send),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/* ========================= MESSAGES ========================= */
-
-class MessagesScreen extends StatelessWidget {
-  const MessagesScreen({super.key});
-
-  final chats = const [
-    ['Mia', 'Hello! How are you?'],
-    ['Luna', 'Thanks for joining my live ❤️'],
-    ['Sofia', 'See you later!'],
-    ['Emma', 'Hi 👋'],
-    ['Nina', 'Welcome to WikaLive'],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(25, 25, 25, 20),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Messages',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              itemCount: chats.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 8),
-                  leading: const CircleAvatar(
-                    radius: 30,
-                    child: Icon(Icons.person),
-                  ),
-                  title: Text(
-                    chats[index][0],
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Text(
-                    chats[index][1],
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ChatPage(
-                          name: chats[index][0],
-                          initialMessage: chats[index][1],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ChatPage extends StatefulWidget {
-  final String name;
-  final String initialMessage;
-
-  const ChatPage({
-    super.key,
-    required this.name,
-    required this.initialMessage,
-  });
-
-  @override
-  State<ChatPage> createState() => _ChatPageState();
-}
-
-class _ChatPageState extends State<ChatPage> {
-  final controller = TextEditingController();
-  late final List<String> messages;
-
-  @override
-  void initState() {
-    super.initState();
-    messages = [widget.initialMessage];
-  }
-
-  void sendMessage() {
-    final text = controller.text.trim();
-
-    if (text.isEmpty) return;
-
-    setState(() {
-      messages.add(text);
-      controller.clear();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            const CircleAvatar(
-              radius: 20,
-              child: Icon(Icons.person),
-            ),
-            const SizedBox(width: 12),
-            Text(widget.name),
-          ],
-        ),
-      ),
+      appBar: AppBar(title: Text(widget.name)),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(15),
               itemCount: messages.length,
-              itemBuilder: (_, index) {
-                final mine = index > 0;
-
+              itemBuilder: (_, i) {
                 return Align(
-                  alignment:
-                      mine ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment: Alignment.centerRight,
                   child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    constraints: const BoxConstraints(
-                      maxWidth: 300,
-                    ),
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 5),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: mine
-                          ? const Color(0xFF6840C5)
-                          : const Color(0xFF1C1924),
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.pink.withOpacity(.25),
+                      borderRadius:
+                          BorderRadius.circular(15),
                     ),
-                    child: Text(
-                      messages[index],
-                      style: const TextStyle(fontSize: 16),
-                    ),
+                    child: Text(messages[i]),
                   ),
                 );
               },
             ),
           ),
-
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 5, 12, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => sendMessage(),
-                      decoration: InputDecoration(
-                        hintText: 'Type a message...',
-                        filled: true,
-                        fillColor: const Color(0xFF191720),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    decoration: const InputDecoration(
+                      hintText: 'Type a message...',
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  CircleAvatar(
-                    radius: 25,
-                    child: IconButton(
-                      onPressed: sendMessage,
-                      icon: const Icon(Icons.send),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                IconButton(
+                  onPressed: send,
+                  icon: const Icon(Icons.send),
+                ),
+              ],
             ),
           ),
         ],
@@ -1371,41 +1068,63 @@ class MeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.all(25),
+        padding: const EdgeInsets.all(16),
         children: [
-          const SizedBox(height: 20),
+          const SizedBox(height: 15),
           const Center(
             child: CircleAvatar(
-              radius: 55,
-              child: Icon(Icons.person, size: 60),
+              radius: 48,
+              child: Icon(Icons.person, size: 50),
             ),
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 12),
           const Center(
             child: Text(
               'Wika User',
               style: TextStyle(
-                fontSize: 25,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          const SizedBox(height: 35),
-
-          _ProfileButton(
-            icon: Icons.account_balance_wallet_outlined,
-            title: 'Wallet',
-            onTap: () {},
+          const Center(
+            child: Text(
+              '@wikauser',
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
-          _ProfileButton(
-            icon: Icons.card_giftcard,
-            title: 'My Gifts',
-            onTap: () {},
+          const SizedBox(height: 25),
+          _menu(context, Icons.person_outline, 'My Profile',
+              const ProfilePage()),
+          _menu(
+            context,
+            Icons.account_balance_wallet_outlined,
+            'Wallet',
+            const WalletPage(),
           ),
-          _ProfileButton(
-            icon: Icons.settings_outlined,
-            title: 'Settings',
-            onTap: () {},
+          _menu(
+            context,
+            Icons.card_giftcard,
+            'My Gifts',
+            const GiftsPage(),
+          ),
+          _menu(
+            context,
+            Icons.live_tv,
+            'Become a Host',
+            const HostPage(),
+          ),
+          _menu(
+            context,
+            Icons.business,
+            'Agency',
+            const AgencyPage(),
+          ),
+          _menu(
+            context,
+            Icons.settings_outlined,
+            'Settings',
+            const SettingsPage(),
           ),
         ],
       ),
@@ -1413,36 +1132,580 @@ class MeScreen extends StatelessWidget {
   }
 }
 
-class _ProfileButton extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
+Widget _menu(
+  BuildContext context,
+  IconData icon,
+  String title,
+  Widget page,
+) {
+  return Card(
+    child: ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _open(context, page),
+    ),
+  );
+}
 
-  const _ProfileButton({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
+/* ========================= PROFILE ========================= */
+
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final name = TextEditingController(text: 'Wika User');
+  final bio = TextEditingController(
+    text: 'Welcome to my WikaLive profile ❤️',
+  );
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF181620),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: ListTile(
-        onTap: onTap,
-        leading: Icon(icon),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Profile')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Center(
+            child: CircleAvatar(
+              radius: 50,
+              child: Icon(Icons.person, size: 55),
+            ),
           ),
-        ),
-        trailing: const Icon(Icons.chevron_right),
+          const SizedBox(height: 25),
+          TextField(
+            controller: name,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 15),
+          TextField(
+            controller: bio,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Bio',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: () {
+              _message(context, 'Profile saved');
+            },
+            child: const Text('Save Profile'),
+          ),
+        ],
       ),
     );
   }
+}
+
+/* ========================= WALLET ========================= */
+
+class WalletPage extends StatelessWidget {
+  const WalletPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Wallet')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF8E2DE2),
+                  Color(0xFFFF416C),
+                ],
+              ),
+            ),
+            child: const Column(
+              children: [
+                Text(
+                  'My Coins',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '12,500',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text('Coins'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: () => _open(
+              context,
+              const CoinPackagesPage(),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('Buy Coins'),
+          ),
+          const SizedBox(height: 10),
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text('Gift History'),
+            onTap: () => _message(
+              context,
+              'Gift history opened',
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.currency_rupee),
+            title: const Text('Withdraw'),
+            onTap: () => _open(
+              context,
+              const WithdrawalPage(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CoinPackagesPage extends StatelessWidget {
+  const CoinPackagesPage({super.key});
+
+  final packages = const [
+    ['100 Coins', '₹10'],
+    ['500 Coins', '₹50'],
+    ['1,000 Coins', '₹100'],
+    ['5,000 Coins', '₹500'],
+    ['10,000 Coins', '₹1,000'],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Buy Coins')),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: packages.length,
+        itemBuilder: (_, i) {
+          return Card(
+            child: ListTile(
+              leading: const Icon(
+                Icons.monetization_on,
+                color: Colors.amber,
+              ),
+              title: Text(packages[i][0]),
+              subtitle: Text(packages[i][1]),
+              trailing: FilledButton(
+                onPressed: () => _message(
+                  context,
+                  'Payment screen will open here',
+                ),
+                child: const Text('Buy'),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/* ========================= GIFTS ========================= */
+
+class GiftsPage extends StatelessWidget {
+  const GiftsPage({super.key});
+
+  final gifts = const [
+    '❤️',
+    '🌹',
+    '💎',
+    '🔥',
+    '👑',
+    '🎁',
+    '🚀',
+    '💰',
+    '⭐',
+    '🍫',
+    '🎂',
+    '🦋',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Gifts')),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(15),
+        itemCount: gifts.length,
+        gridDelegate:
+            const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemBuilder: (_, i) {
+          return Card(
+            child: Center(
+              child: Text(
+                gifts[i],
+                style: const TextStyle(fontSize: 42),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+void _openGiftSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    showDragHandle: true,
+    builder: (_) {
+      final gifts = ['❤️', '🌹', '💎', '🔥', '👑', '🎁'];
+
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: GridView.builder(
+          shrinkWrap: true,
+          itemCount: gifts.length,
+          gridDelegate:
+              const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+          ),
+          itemBuilder: (ctx, i) {
+            return InkWell(
+              onTap: () {
+                Navigator.pop(ctx);
+                _message(
+                  context,
+                  '${gifts[i]} Gift sent',
+                );
+              },
+              child: Center(
+                child: Text(
+                  gifts[i],
+                  style: const TextStyle(fontSize: 42),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    },
+  );
+}
+
+/* ========================= HOST ========================= */
+
+class HostPage extends StatelessWidget {
+  const HostPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Become a Host')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Icon(
+            Icons.live_tv,
+            size: 80,
+            color: Colors.pink,
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Become a WikaLive Host',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Go live, interact with viewers and earn from gifts.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 30),
+          FilledButton(
+            onPressed: () {
+              _message(
+                context,
+                'Host application opened',
+              );
+            },
+            child: const Text('Apply as Host'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/* ========================= AGENCY ========================= */
+
+class AgencyPage extends StatelessWidget {
+  const AgencyPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Agency')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.business),
+              title: const Text('My Agency'),
+              subtitle: const Text('No agency joined'),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.mail_outline),
+              title: const Text('Invitations'),
+              subtitle: const Text('No pending invitations'),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.people_outline),
+              title: const Text('My Hosts'),
+              subtitle: const Text('0 hosts'),
+            ),
+          ),
+          const SizedBox(height: 15),
+          FilledButton(
+            onPressed: () {
+              _message(
+                context,
+                'Agency joining screen opened',
+              );
+            },
+            child: const Text('Join Agency'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/* ========================= WITHDRAWAL ========================= */
+
+class WithdrawalPage extends StatefulWidget {
+  const WithdrawalPage({super.key});
+
+  @override
+  State<WithdrawalPage> createState() =>
+      _WithdrawalPageState();
+}
+
+class _WithdrawalPageState
+    extends State<WithdrawalPage> {
+  final amount = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Withdrawal')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: const Color(0xFF19191F),
+            ),
+            child: const Column(
+              children: [
+                Text(
+                  'Available Balance',
+                  style: TextStyle(color: Colors.white54),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '₹0',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: amount,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Withdrawal amount',
+              prefixText: '₹ ',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton(
+            onPressed: () {
+              if (amount.text.isEmpty) {
+                _message(
+                  context,
+                  'Enter withdrawal amount',
+                );
+                return;
+              }
+
+              _message(
+                context,
+                'Withdrawal request submitted',
+              );
+            },
+            child: const Text('Request Withdrawal'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/* ========================= NOTIFICATIONS ========================= */
+
+class NotificationsPage extends StatelessWidget {
+  const NotificationsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      'Mia started a live',
+      'You received a new message',
+      'Your agency invitation is waiting',
+      'Welcome to WikaLive ❤️',
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Notifications'),
+      ),
+      body: ListView.builder(
+        itemCount: items.length,
+        itemBuilder: (_, i) {
+          return ListTile(
+            leading: const CircleAvatar(
+              child: Icon(Icons.notifications),
+            ),
+            title: Text(items[i]),
+            trailing: const Icon(Icons.chevron_right),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/* ========================= SETTINGS ========================= */
+
+class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() =>
+      _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool notifications = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      body: ListView(
+        children: [
+          SwitchListTile(
+            value: notifications,
+            onChanged: (v) {
+              setState(() => notifications = v);
+            },
+            title: const Text('Notifications'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: const Text('Language'),
+            subtitle: const Text('English'),
+            onTap: () => _message(
+              context,
+              'Language selection opened',
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.security),
+            title: const Text('Privacy & Security'),
+            onTap: () => _message(
+              context,
+              'Privacy & Security opened',
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('Help & Support'),
+            onTap: () => _message(
+              context,
+              'Help & Support opened',
+            ),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(
+              Icons.logout,
+              color: Colors.red,
+            ),
+            title: const Text(
+              'Logout',
+              style: TextStyle(color: Colors.red),
+            ),
+            onTap: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AuthPage(),
+                ),
+                (_) => false,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/* ========================= HELPERS ========================= */
+
+void _open(BuildContext context, Widget page) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => page),
+  );
+}
+
+void _message(BuildContext context, String text) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(content: Text(text)),
+    );
 }
