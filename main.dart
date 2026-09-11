@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -96,10 +96,31 @@ class _AuthPageState extends State<AuthPage> {
 
     try {
       if (login) {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
+        final credential =
+            await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: email.text.trim(),
           password: pass.text,
         );
+
+        final user = credential.user;
+        if (user != null) {
+          final ref = FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid);
+
+          final snap = await ref.get();
+
+          if (!snap.exists) {
+            await ref.set({
+              'uid': user.uid,
+              'name': user.displayName ?? 'WikaLive User',
+              'email': user.email ?? '',
+              'coins': 0,
+              'createdAt': FieldValue.serverTimestamp(),
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
       } else {
         final credential =
             await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -401,121 +422,256 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hosts = [
+      ['Mia', '1.8K', 'M'],
+      ['Luna', '2.4K', 'L'],
+      ['Sofia', '980', 'S'],
+      ['Emma', '3.1K', 'E'],
+      ['Nina', '1.2K', 'N'],
+      ['Ava', '760', 'A'],
+    ];
+
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
       children: [
-        const Text(
-          'Welcome to WikaLive',
-          style: TextStyle(
-            fontSize: 27,
-            fontWeight: FontWeight.bold,
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF4B2A8C),
+                Color(0xFF251A49),
+                Color(0xFF15131F),
+              ],
+            ),
+            border: Border.all(color: Colors.white10),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black38,
+                blurRadius: 18,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.auto_awesome_rounded, size: 22),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Your world is live',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.circle, size: 8, color: Colors.greenAccent),
+                        SizedBox(width: 6),
+                        Text('Online', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Welcome to WikaLive',
+                style: TextStyle(
+                  fontSize: 28,
+                  height: 1.05,
+                  letterSpacing: -0.5,
+                ),
+              ),
+                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w800,
+              const SizedBox(height: 8),
+              const Text(
+                'Watch live, join parties and connect with people.',
+                style: TextStyle(color: Colors.white70, height: 1.35),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.black26,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: const Row(
+                  children: [
+                    SizedBox(width: 14),
+                    Icon(Icons.search_rounded, color: Colors.white54),
+                    SizedBox(width: 10),
+                    Text('Search hosts, rooms...', style: TextStyle(color: Colors.white45)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Watch live, join parties and connect with people.',
-          style: TextStyle(
-            color: Colors.white60,
-          ),
-        ),
-        const SizedBox(height: 24),
+
+        const SizedBox(height: 18),
 
         Row(
           children: [
-            Expanded(
-              child: actionCard(
-                context,
-                'Live',
-                Icons.live_tv,
-                1,
-              ),
-            ),
+            Expanded(child: actionCard(context, 'Live', Icons.live_tv_rounded, 1)),
             const SizedBox(width: 12),
-            Expanded(
-              child: actionCard(
-                context,
-                'Party',
-                Icons.groups,
-                2,
-              ),
+            Expanded(child: actionCard(context, 'Party', Icons.groups_rounded, 2)),
+          ],
+        ),
+
+        const SizedBox(height: 28),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Popular Live',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+            ),
+            TextButton(
+              onPressed: () {
+                final state = context.findAncestorStateOfType<_HomePageState>();
+                state?.setState(() => state.index = 1);
+              },
+              child: const Text('See all'),
             ),
           ],
+        ),
+        const SizedBox(height: 10),
+
+        SizedBox(
+          height: 232,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: hosts.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (_, i) {
+              return liveMini(context, hosts[i][0], hosts[i][1], hosts[i][2]);
+            },
+          ),
         ),
 
         const SizedBox(height: 26),
 
         const Text(
-          'Popular Live',
-          style: TextStyle(
-            fontSize: 21,
-            fontWeight: FontWeight.bold,
-          ),
+          'Explore WikaLive',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
         ),
-
-        const SizedBox(height: 14),
-
-        SizedBox(
-          height: 190,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: 6,
-            itemBuilder: (_, i) {
-              final names = [
-                'Mia',
-                'Luna',
-                'Sofia',
-                'Emma',
-                'Nina',
-                'Ava',
-              ];
-
-              return liveMini(
-                context,
-                names[i],
-              );
-            },
-          ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _exploreCard(
+                icon: Icons.card_giftcard_rounded,
+                title: 'Send gifts',
+                subtitle: 'Support your favorite hosts',
+                onTap: () => openPage(context, const GiftsPage()),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _exploreCard(
+                icon: Icons.account_balance_wallet_rounded,
+                title: 'My wallet',
+                subtitle: 'Manage your coins',
+                onTap: () => openPage(context, const WalletPage()),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  static Widget actionCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    int tab,
-  ) {
+  static Widget _exploreCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
-      onTap: () {
-        final state =
-            context.findAncestorStateOfType<_HomePageState>();
-
-        state?.setState(() {
-          state.index = tab;
-        });
-      },
-      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        height: 105,
+        padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: card,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white10),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, size: 24),
+            ),
+            const SizedBox(height: 12),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.white54)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget actionCard(BuildContext context, String title, IconData icon, int tab) {
+    return InkWell(
+      onTap: () {
+        final state = context.findAncestorStateOfType<_HomePageState>();
+        state?.setState(() => state.index = tab);
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        height: 112,
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 34,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
+            Container(
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(15),
               ),
+              child: Icon(icon, size: 29),
             ),
+            const SizedBox(width: 12),
+            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           ],
         ),
       ),
@@ -525,56 +681,95 @@ class HomeScreen extends StatelessWidget {
   static Widget liveMini(
     BuildContext context,
     String name,
+    String viewers,
+    String initial,
   ) {
     return InkWell(
       onTap: () {
-        openPage(
-          context,
-          LiveRoomPage(
-            host: name,
-            viewers: '1.8K viewers',
-          ),
-        );
+        openPage(context, LiveRoomPage(host: name, viewers: '$viewers viewers'));
       },
+      borderRadius: BorderRadius.circular(22),
       child: Container(
-        width: 145,
-        margin: const EdgeInsets.only(right: 12),
+        width: 158,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
+          borderRadius: BorderRadius.circular(22),
+          gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.deepPurple.shade700,
-              Colors.black87,
-            ],
+            colors: [Color(0xFF6336C7), Color(0xFF171321)],
           ),
+          border: Border.all(color: Colors.white12),
+          boxShadow: const [
+            BoxShadow(color: Colors.black45, blurRadius: 14, offset: Offset(0, 7)),
+          ],
         ),
         child: Stack(
           children: [
             Positioned(
-              top: 10,
-              left: 10,
-              child: badge('LIVE'),
-            ),
-            const Center(
-              child: CircleAvatar(
-                radius: 32,
-                child: Icon(
-                  Icons.person,
-                  size: 36,
+              top: 11,
+              left: 11,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF4652),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.circle, size: 6),
+                    SizedBox(width: 5),
+                    Text('LIVE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+                  ],
                 ),
               ),
             ),
             Positioned(
-              left: 12,
-              bottom: 14,
-              child: Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              top: 12,
+              right: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.black38,
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.visibility_rounded, size: 11),
+                    const SizedBox(width: 4),
+                    Text(viewers, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+            Center(
+              child: Container(
+                width: 74,
+                height: 74,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white12,
+                  border: Border.all(color: Colors.white38, width: 2),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  initial,
+                  style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 13,
+              right: 13,
+              bottom: 13,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 3),
+                  const Text('Tap to join live', style: TextStyle(fontSize: 10, color: Colors.white60)),
+                ],
               ),
             ),
           ],
@@ -1518,99 +1713,152 @@ class MeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user =
-        FirebaseAuth.instance.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
 
-    final name =
-        (user?.displayName?.trim().isNotEmpty ??
-                false)
-            ? user!.displayName!
-            : 'WikaLive User';
+    if (user == null) {
+      return const Center(
+        child: Text('Please login again'),
+      );
+    }
 
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        CircleAvatar(
-          radius: 48,
-          child: Text(
-            name[0].toUpperCase(),
-            style: const TextStyle(
-              fontSize: 34,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data();
 
-        const SizedBox(height: 12),
+        final name =
+            (data?['name'] ?? user.displayName ?? 'WikaLive User')
+                .toString();
 
-        Center(
-          child: Text(
-            name,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
+        final email =
+            (data?['email'] ?? user.email ?? '').toString();
 
-        if (user?.email != null)
-          Center(
-            child: Text(
-              user!.email!,
-              style: const TextStyle(
-                color: Colors.white60,
+        final coins = data?['coins'] is num
+            ? (data!['coins'] as num).toInt()
+            : 0;
+
+        return ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            CircleAvatar(
+              radius: 48,
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : 'W',
+                style: const TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
 
-        const SizedBox(height: 25),
+            const SizedBox(height: 12),
 
-        menu(
-          context,
-          'Wallet',
-          Icons.account_balance_wallet_outlined,
-          const WalletPage(),
-        ),
+            Center(
+              child: Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
 
-        menu(
-          context,
-          'My Gifts',
-          Icons.card_giftcard,
-          const GiftsPage(),
-        ),
+            if (email.isNotEmpty)
+              Center(
+                child: Text(
+                  email,
+                  style: const TextStyle(
+                    color: Colors.white60,
+                  ),
+                ),
+              ),
 
-        menu(
-          context,
-          'Become a Host',
-          Icons.videocam_outlined,
-          const HostPage(),
-        ),
+            const SizedBox(height: 25),
 
-        menu(
-          context,
-          'Agency',
-          Icons.business_center_outlined,
-          const AgencyPage(),
-        ),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 14,
+              ),
+              decoration: BoxDecoration(
+                color: card,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.monetization_on_outlined),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Coins',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    coins.toString(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-        menu(
-          context,
-          'Settings',
-          Icons.settings_outlined,
-          const SettingsPage(),
-        ),
+            const SizedBox(height: 12),
 
-        const SizedBox(height: 10),
+            menu(
+              context,
+              'Wallet',
+              Icons.account_balance_wallet_outlined,
+              const WalletPage(),
+            ),
 
-        FilledButton.tonalIcon(
-          onPressed: () async {
-            await FirebaseAuth.instance
-                .signOut();
-          },
-          icon: const Icon(Icons.logout),
-          label: const Text('Logout'),
-        ),
-      ],
+            menu(
+              context,
+              'My Gifts',
+              Icons.card_giftcard,
+              const GiftsPage(),
+            ),
+
+            menu(
+              context,
+              'Become a Host',
+              Icons.videocam_outlined,
+              const HostPage(),
+            ),
+
+            menu(
+              context,
+              'Agency',
+              Icons.business_center_outlined,
+              const AgencyPage(),
+            ),
+
+            menu(
+              context,
+              'Settings',
+              Icons.settings_outlined,
+              const SettingsPage(),
+            ),
+
+            const SizedBox(height: 10),
+
+            FilledButton.tonalIcon(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+              },
+              icon: const Icon(Icons.logout),
+              label: const Text('Logout'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1620,79 +1868,100 @@ class WalletPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text('Please login again'),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Wallet'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding:
-                const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: card,
-              borderRadius:
-                  BorderRadius.circular(20),
-            ),
-            child: const Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'My Coins',
-                  style: TextStyle(
-                    color: Colors.white60,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '12,500',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Coins',
-                  style: TextStyle(
-                    color: Colors.white60,
-                  ),
-                ),
-              ],
-            ),
-          ),
+      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .snapshots(),
+        builder: (context, snapshot) {
+          final data = snapshot.data?.data();
 
-          const SizedBox(height: 16),
+          final coins = data?['coins'] is num
+              ? (data!['coins'] as num).toInt()
+              : 0;
 
-          menu(
-            context,
-            'Buy Coins',
-            Icons.add_circle_outline,
-            null,
-            onTap: () {
-              msg(
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: card,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'My Coins',
+                      style: TextStyle(
+                        color: Colors.white60,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      coins.toString(),
+                      style: const TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Coins',
+                      style: TextStyle(
+                        color: Colors.white60,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              menu(
                 context,
-                'Coin purchase will be connected later',
-              );
-            },
-          ),
+                'Buy Coins',
+                Icons.add_circle_outline,
+                null,
+                onTap: () {
+                  msg(
+                    context,
+                    'Coin purchase will be connected later',
+                  );
+                },
+              ),
 
-          menu(
-            context,
-            'Gift History',
-            Icons.history,
-            const GiftHistoryPage(),
-          ),
+              menu(
+                context,
+                'Gift History',
+                Icons.history,
+                const GiftHistoryPage(),
+              ),
 
-          menu(
-            context,
-            'Withdraw',
-            Icons.account_balance_outlined,
-            const WithdrawalPage(),
-          ),
-        ],
+              menu(
+                context,
+                'Withdraw',
+                Icons.account_balance_outlined,
+                const WithdrawalPage(),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -2257,8 +2526,7 @@ void msg(
   BuildContext context,
   String text,
 ) {
-  ScaffoldMessenger.of(context)
-      .showSnackBar(
+  ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(text),
     ),
