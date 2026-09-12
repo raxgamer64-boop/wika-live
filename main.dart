@@ -785,45 +785,65 @@ class MeScreen extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: Container(
         height: 112,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Row(
           children: [
-            Text(icon, style: const TextStyle(fontSize: 39)),
-            const SizedBox(width: 9),
+            SizedBox(
+              width: 58,
+              child: Center(
+                child: Text(icon, style: const TextStyle(fontSize: 40)),
+              ),
+            ),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (onTap != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
+                        horizontal: 12,
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFFFFCA3A), Color(0xFFFF8538)],
                         ),
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
+                    )
+                  else
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.black87,
+                      ),
                     ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 7),
                   Text(
                     value,
                     style: const TextStyle(
-                      fontSize: 22,
+                      fontSize: 23,
                       fontWeight: FontWeight.w900,
                       color: Colors.black87,
                     ),
@@ -839,8 +859,77 @@ class MeScreen extends StatelessWidget {
 
   Widget _goldBanner() => Container(height: 105, decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF9A5716), Color(0xFFFFD45B), Color(0xFF8A4B12)]), borderRadius: BorderRadius.circular(16)), child: const Center(child: Text('Earn up to \$27\nby inviting new users', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900))));
   Widget _menuGrid(BuildContext context, bool first) {
-    final items = first ? <List<dynamic>>[['📅', 'Task'], ['💗', 'Level'], ['💖', 'Fans Club'], ['🎮', 'Game'], ['🎒', 'Backpack'], ['🛍️', 'Dress Store'], ['🎟️', 'Event Center']] : <List<dynamic>>[['♛', 'VIP'], ['🛡️', 'Guardian'], ['↪️', 'Join agency'], ['🕵️', 'Real person detection'], ['❓', 'Help & Feedback'], ['🎧', 'Customer Service'], ['⚙️', 'Setting']];
-    return Container(padding: const EdgeInsets.fromLTRB(10, 20, 10, 14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)), child: Wrap(children: items.map((it) => SizedBox(width: MediaQuery.of(context).size.width / 4.6, height: 106, child: InkWell(onTap: () { if (it[1] == 'Wallet') openPage(context, const WalletPage()); }, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(it[0], style: const TextStyle(fontSize: 31)), const SizedBox(height: 8), Padding(padding: const EdgeInsets.symmetric(horizontal: 3), child: Text(it[1], textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)))])))).toList()));
+    final items = first
+        ? <List<dynamic>>[
+            ['📅', 'Task'],
+            ['💗', 'Level'],
+            ['💖', 'Fans Club'],
+            ['🎮', 'Game'],
+            ['🎒', 'Backpack'],
+            ['🛍️', 'Dress Store'],
+            ['🎟️', 'Event Center'],
+          ]
+        : <List<dynamic>>[
+            ['♛', 'VIP'],
+            ['🛡️', 'Guardian'],
+            ['↪️', 'Join agency'],
+            ['🕵️', 'Real person detection'],
+            ['❓', 'Help & Feedback'],
+            ['🎧', 'Customer Service'],
+            ['⚙️', 'Setting'],
+          ];
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 18, 8, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: items.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          mainAxisExtent: 106,
+          crossAxisSpacing: 4,
+          mainAxisSpacing: 4,
+        ),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () {
+              if (item[1] == 'Setting') {
+                openPage(context, const SettingsPage());
+              }
+            },
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(item[0], style: const TextStyle(fontSize: 34)),
+                const SizedBox(height: 9),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Text(
+                    item[1],
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      height: 1.15,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
