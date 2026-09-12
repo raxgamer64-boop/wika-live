@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,6 +78,46 @@ class _AuthPageState extends State<AuthPage> {
     email.dispose();
     pass.dispose();
     super.dispose();
+  }
+
+  Future<void> signInWithGoogle() async {
+    setState(() => loading = true);
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        if (mounted) setState(() => loading = false);
+        return;
+      }
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final result = await FirebaseAuth.instance.signInWithCredential(credential);
+      final user = result.user;
+      if (user != null) {
+        final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        if (!(await ref.get()).exists) {
+          await ref.set({
+            'uid': user.uid,
+            'name': user.displayName ?? 'WikaLive User',
+            'email': user.email ?? '',
+            'coins': 0,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+    } on FirebaseAuthException catch (e) {
+      msg(context, e.message ?? 'Google sign-in failed');
+    } catch (e) {
+      msg(context, 'Google sign-in failed: $e');
+    }
+    if (mounted) setState(() => loading = false);
+  }
+
+  void openPhoneLogin() {
+    openPage(context, const PhoneLoginPage());
   }
 
   Future<void> submit() async {
@@ -197,7 +238,7 @@ class _AuthPageState extends State<AuthPage> {
                     : 'Create your WikaLive account.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Colors.white60,
+                  color: Color(0xFF77727F),
                 ),
               ),
               const SizedBox(height: 35),
@@ -258,6 +299,28 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                 ),
               ),
+
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: loading ? null : signInWithGoogle,
+                icon: const Icon(Icons.g_mobiledata_rounded, size: 30),
+                label: const Text('Continue with Google'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: loading ? null : openPhoneLogin,
+                icon: const Icon(Icons.phone_rounded),
+                label: const Text('Continue with phone number'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+              ),
+              const SizedBox(height: 6),
 
               TextButton(
                 onPressed: () {
@@ -777,17 +840,17 @@ class MeScreen extends StatelessWidget {
                 const SizedBox(height: 14),
                 _statsCard(),
                 const SizedBox(height: 14),
-                _kingCard(),
+                _kingCard(context),
                 const SizedBox(height: 14),
                 Row(
                   children: [
                     Expanded(child: _coinCard(context, coins)),
                     const SizedBox(width: 12),
-                    Expanded(child: _gemCard()),
+                    Expanded(child: _gemCard(context)),
                   ],
                 ),
                 const SizedBox(height: 14),
-                _inviteCard(),
+                _inviteCard(context),
                 const SizedBox(height: 16),
                 _sectionTitle('My Space', '7 tools'),
                 const SizedBox(height: 9),
@@ -812,7 +875,11 @@ class MeScreen extends StatelessWidget {
                   _Tool(Icons.headset_mic_rounded, 'Customer Service', const Color(0xFF50515B)),
                   _Tool(Icons.tune_rounded, 'Settings', const Color(0xFF5C98AA), isSetting: true),
                 ], onTap: (tool) {
-                  if (tool.isSetting) openPage(context, const SettingsPage());
+                  if (tool.isSetting) {
+                    openPage(context, const SettingsPage());
+                  } else {
+                    openPage(context, _toolPage(tool.label));
+                  }
                 }),
                 const SizedBox(height: 8),
                 const Center(
@@ -961,31 +1028,37 @@ class MeScreen extends StatelessWidget {
     );
   }
 
-  Widget _kingCard() {
-    return Container(
-      height: 126,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF17111E), Color(0xFF4B2267), Color(0xFF9A4B82)], begin: Alignment.centerLeft, end: Alignment.centerRight),
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: const [BoxShadow(color: Color(0x281B1025), blurRadius: 18, offset: Offset(0, 8))],
-      ),
-      child: Row(
-        children: [
-          Container(width: 58, height: 58, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x25FFFFFF), border: Border.all(color: const Color(0x55FFFFFF))), child: const Center(child: Text('💎', style: TextStyle(fontSize: 32)))),
-          const SizedBox(width: 13),
-          const Expanded(
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget _kingCard(BuildContext context) {
+    return InkWell(
+      onTap: () => openPage(context, const FeaturePage(
+        title: 'King of Kings',
+        icon: '💎',
+        items: ['Premium status', 'Exclusive privileges', 'Special rewards'],
+      )),
+      borderRadius: BorderRadius.circular(25),
+      child: Container(
+        height: 126,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [Color(0xFF17111E), Color(0xFF4B2267), Color(0xFF9A4B82)]),
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: const [BoxShadow(color: Color(0x281B1025), blurRadius: 18, offset: Offset(0, 8))],
+        ),
+        child: Row(
+          children: [
+            Container(width: 58, height: 58, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x25FFFFFF), border: Border.all(color: const Color(0x55FFFFFF))), child: const Center(child: Text('💎', style: TextStyle(fontSize: 32)))),
+            const SizedBox(width: 13),
+            const Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('KING OF KINGS', style: TextStyle(color: Color(0xFFFFD98B), fontSize: 12, letterSpacing: 1.2, fontWeight: FontWeight.w900)),
               SizedBox(height: 5),
               Text('Unlock your royal privileges', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
               SizedBox(height: 4),
               Text('Exclusive status • special benefits', style: TextStyle(color: Color(0xFFDCCFE3), fontSize: 10.5, fontWeight: FontWeight.w600)),
-            ]),
-          ),
-          const SizedBox(width: 8),
-          Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFFD66B), Color(0xFFFF9D36)]), borderRadius: BorderRadius.circular(16)), child: const Text('ACTIVATE', style: TextStyle(color: Color(0xFF3A2411), fontSize: 11, fontWeight: FontWeight.w900))),
-        ],
+            ])),
+            const SizedBox(width: 8),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFFD66B), Color(0xFFFF9D36)]), borderRadius: BorderRadius.circular(16)), child: const Text('ACTIVATE', style: TextStyle(color: Color(0xFF3A2411), fontSize: 11, fontWeight: FontWeight.w900))),
+          ],
+        ),
       ),
     );
   }
@@ -1003,22 +1076,68 @@ class MeScreen extends StatelessWidget {
     );
   }
 
-  Widget _gemCard() {
-    return Container(
-      height: 112,
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFF0E0FF), Color(0xFFE5D1FF)]), borderRadius: BorderRadius.circular(22)),
-      child: Row(children: [Container(width: 48, height: 48, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x33FFFFFF)), child: const Center(child: Text('💎', style: TextStyle(fontSize: 30)))), const SizedBox(width: 10), const Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text('GEMS', style: TextStyle(fontSize: 11, letterSpacing: 1, color: Color(0xFF777083), fontWeight: FontWeight.w900)), SizedBox(height: 4), Text('0', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900))])]),
+  Widget _gemCard(BuildContext context) {
+    return InkWell(
+      onTap: () => openPage(context, const FeaturePage(title: 'Gems', icon: '💎', items: ['Gems balance', 'Premium uses', 'Gems history'])),
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        height: 112,
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFF0E0FF), Color(0xFFE5D1FF)]), borderRadius: BorderRadius.circular(22)),
+        child: Row(children: [
+          Container(width: 48, height: 48, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x33FFFFFF)), child: const Center(child: Text('💎', style: TextStyle(fontSize: 30)))),
+          const SizedBox(width: 10),
+          const Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('GEMS', style: TextStyle(fontSize: 11, letterSpacing: 1, color: Color(0xFF777083), fontWeight: FontWeight.w900)),
+            SizedBox(height: 4),
+            Text('0', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900)),
+          ]),
+        ]),
+      ),
     );
   }
 
-  Widget _inviteCard() {
-    return Container(
-      height: 122,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF3A1A52), Color(0xFF8B3F7A), Color(0xFFD36B75)]), borderRadius: BorderRadius.circular(24), boxShadow: const [BoxShadow(color: Color(0x221F1028), blurRadius: 16, offset: Offset(0, 7))]),
-      child: Row(children: [Container(width: 52, height: 52, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x22FFFFFF), border: Border.all(color: const Color(0x55FFFFFF))), child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFFFD16B), size: 28)), const SizedBox(width: 14), const Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text('INVITE & EARN', style: TextStyle(color: Color(0xFFFFD16B), fontSize: 11, letterSpacing: 1.1, fontWeight: FontWeight.w900)), SizedBox(height: 4), Text('Earn up to ₹2,250', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)), SizedBox(height: 3), Text('Invite new users and unlock rewards', style: TextStyle(color: Color(0xFFE8DCEB), fontSize: 10.5, fontWeight: FontWeight.w600))])), const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 17)]),
+  Widget _inviteCard(BuildContext context) {
+    return InkWell(
+      onTap: () => openPage(context, const FeaturePage(title: 'Invite & Earn', icon: '🎁', items: ['Invite users', 'Referral rewards', 'Invitation history'])),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        height: 122,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF3A1A52), Color(0xFF8B3F7A), Color(0xFFD36B75)]), borderRadius: BorderRadius.circular(24), boxShadow: const [BoxShadow(color: Color(0x221F1028), blurRadius: 16, offset: Offset(0, 7))]),
+        child: Row(children: [
+          Container(width: 52, height: 52, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x22FFFFFF), border: Border.all(color: const Color(0x55FFFFFF))), child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFFFD16B), size: 28)),
+          const SizedBox(width: 14),
+          const Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('INVITE & EARN', style: TextStyle(color: Color(0xFFFFD16B), fontSize: 11, letterSpacing: 1.1, fontWeight: FontWeight.w900)),
+            SizedBox(height: 4),
+            Text('Earn up to ₹2,250', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+            SizedBox(height: 3),
+            Text('Invite new users and unlock rewards', style: TextStyle(color: Color(0xFFE8DCEB), fontSize: 10.5, fontWeight: FontWeight.w600)),
+          ])),
+          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 17),
+        ]),
+      ),
     );
+  }
+
+  Widget _toolPage(String label) {
+    switch (label) {
+      case 'Task': return const FeaturePage(title: 'Task Center', icon: '📅', items: ['Daily tasks', 'Weekly missions', 'Task rewards', 'Task history']);
+      case 'Level': return const FeaturePage(title: 'My Level', icon: '💗', items: ['Level progress', 'Level rewards', 'How to level up']);
+      case 'Fans Club': return const FeaturePage(title: 'Fans Club', icon: '💖', items: ['My fans', 'Club level', 'Club rewards']);
+      case 'Game': return const FeaturePage(title: 'Game Center', icon: '🎮', items: ['Mini games', 'Game ranking', 'Game rewards']);
+      case 'Backpack': return const FeaturePage(title: 'Backpack', icon: '🎒', items: ['My items', 'Frames', 'Effects']);
+      case 'Dress Store': return const FeaturePage(title: 'Dress Store', icon: '🛍️', items: ['Frames', 'Effects', 'Name decorations', 'Limited items']);
+      case 'Event Center': return const FeaturePage(title: 'Event Center', icon: '🎟️', items: ['Live events', 'Party events', 'Rank events', 'Event rewards']);
+      case 'VIP': return const FeaturePage(title: 'VIP', icon: '👑', items: ['VIP membership', 'VIP privileges', 'VIP badge', 'VIP rewards']);
+      case 'Guardian': return const FeaturePage(title: 'Guardian', icon: '🛡️', items: ['Guardian status', 'Guard a host', 'Guardian privileges']);
+      case 'Join Agency': return const AgencyPage();
+      case 'Real Person': return const FeaturePage(title: 'Real Person Detection', icon: '🕵️', items: ['Verification', 'Verification status', 'Safety information']);
+      case 'Help & Feedback': return const FeaturePage(title: 'Help & Feedback', icon: '❓', items: ['Common questions', 'Report a problem', 'Send feedback', 'Safety help']);
+      case 'Customer Service': return const FeaturePage(title: 'Customer Service', icon: '🎧', items: ['Online support', 'Account help', 'Payment support', 'Live support']);
+      default: return FeaturePage(title: label, icon: '✨', items: const ['Coming soon']);
+    }
   }
 
   Widget _sectionTitle(String title, String count) {
@@ -2155,6 +2274,91 @@ class _SettingsState
       ),
     );
   }
+}
+
+class PhoneLoginPage extends StatefulWidget {
+  const PhoneLoginPage({super.key});
+  @override
+  State<PhoneLoginPage> createState() => _PhoneLoginPageState();
+}
+
+class _PhoneLoginPageState extends State<PhoneLoginPage> {
+  final phone = TextEditingController();
+  final otp = TextEditingController();
+  String verificationId = '';
+  bool codeSent = false;
+  bool loading = false;
+
+  @override
+  void dispose() { phone.dispose(); otp.dispose(); super.dispose(); }
+
+  Future<void> sendCode() async {
+    final number = phone.text.trim();
+    if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(number)) {
+      msg(context, 'Enter number with country code, e.g. +91XXXXXXXXXX');
+      return;
+    }
+    setState(() => loading = true);
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: number,
+      verificationCompleted: (credential) async {
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      },
+      verificationFailed: (e) { if (mounted) { setState(() => loading = false); msg(context, e.message ?? 'Phone verification failed'); } },
+      codeSent: (id, _) { if (mounted) { setState(() { verificationId = id; codeSent = true; loading = false; }); msg(context, 'OTP sent'); } },
+      codeAutoRetrievalTimeout: (id) { verificationId = id; },
+    );
+  }
+
+  Future<void> verifyCode() async {
+    if (verificationId.isEmpty || otp.text.trim().length != 6) { msg(context, 'Enter the 6-digit OTP'); return; }
+    setState(() => loading = true);
+    try {
+      final credential = PhoneAuthProvider.credential(verificationId: verificationId, smsCode: otp.text.trim());
+      final result = await FirebaseAuth.instance.signInWithCredential(credential);
+      final user = result.user;
+      if (user != null) {
+        final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        if (!(await ref.get()).exists) {
+          await ref.set({'uid': user.uid, 'name': 'WikaLive User', 'phone': user.phoneNumber ?? phone.text.trim(), 'coins': 0, 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()});
+        }
+      }
+      if (mounted) Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      msg(context, e.message ?? 'Invalid OTP');
+    } finally { if (mounted) setState(() => loading = false); }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Phone Login')),
+    body: ListView(padding: const EdgeInsets.all(24), children: [
+      const SizedBox(height: 30),
+      const Icon(Icons.phone_iphone_rounded, size: 70),
+      const SizedBox(height: 18),
+      const Text('Login with your phone number', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 28),
+      TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone number', hintText: '+91XXXXXXXXXX', prefixIcon: Icon(Icons.phone_rounded), filled: true)),
+      if (codeSent) ...[const SizedBox(height: 14), TextField(controller: otp, keyboardType: TextInputType.number, maxLength: 6, decoration: const InputDecoration(labelText: 'OTP', prefixIcon: Icon(Icons.lock_rounded), filled: true))],
+      const SizedBox(height: 18),
+      SizedBox(height: 52, child: FilledButton(onPressed: loading ? null : (codeSent ? verifyCode : sendCode), child: Text(loading ? 'Please wait...' : (codeSent ? 'Verify OTP' : 'Send OTP')))),
+      if (codeSent) TextButton(onPressed: loading ? null : sendCode, child: const Text('Resend OTP')),
+    ]),
+  );
+}
+
+class FeaturePage extends StatelessWidget {
+  final String title; final String icon; final List<String> items;
+  const FeaturePage({super.key, required this.title, required this.icon, required this.items});
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: ListView(padding: const EdgeInsets.all(18), children: [
+      Container(padding: const EdgeInsets.all(22), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF241332), Color(0xFF9A4B82)]), borderRadius: BorderRadius.circular(24)), child: Column(children: [Text(icon, style: const TextStyle(fontSize: 48)), const SizedBox(height: 8), Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)), const SizedBox(height: 4), const Text('WikaLive premium space', style: TextStyle(color: Color(0xFFE9D9EF)))])),
+      const SizedBox(height: 16),
+      ...items.map((item) => Card(child: ListTile(leading: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF9B55E8)), title: Text(item, style: const TextStyle(fontWeight: FontWeight.w800)), trailing: const Icon(Icons.chevron_right_rounded), onTap: () => msg(context, '$item opened')))),
+    ]),
+  );
 }
 
 class SimplePage
