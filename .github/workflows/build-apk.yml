@@ -64,6 +64,8 @@ jobs:
       - name: Verify Firebase config
         run: |
           test -f app/android/app/google-services.json
+          echo "Firebase config found."
+
           grep -n "com.google.gms.google-services" app/android/settings.gradle.kts
           grep -n "com.google.gms.google-services" app/android/app/build.gradle.kts
 
@@ -71,7 +73,8 @@ jobs:
         run: |
           cd app
           flutter build apk --release
-                - name: Get SHA fingerprints
+
+      - name: Get SHA fingerprints
         run: |
           echo "=== WikaLive Release APK SHA-1 / SHA-256 ==="
           keytool -printcert -jarfile app/build/app/outputs/flutter-apk/app-release.apk
