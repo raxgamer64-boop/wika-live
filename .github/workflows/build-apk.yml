@@ -97,12 +97,6 @@ jobs:
           )
 
           text = text.replace(
-              'buildTypes {',
-              '''buildTypes {''',
-              1
-          )
-
-          text = text.replace(
               'release {',
               '''release {
                   signingConfig = signingConfigs.getByName("release")''',
@@ -123,6 +117,7 @@ jobs:
           flutter clean
           flutter pub get
           flutter build apk --release
+
       - name: Get SHA fingerprints
         run: |
           echo "======================================"
@@ -134,8 +129,6 @@ jobs:
             -storepass android \
             -alias upload \
             | grep -E "SHA1:|SHA256:"
-  
-            -jarfile app/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
