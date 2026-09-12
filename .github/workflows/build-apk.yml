@@ -79,6 +79,7 @@ jobs:
           keyPassword=$KEYSTORE_PASSWORD
           keyAlias=$KEY_ALIAS
           storeFile=upload-keystore.jks
+          storeType=PKCS12
           EOF
 
           python3 - <<'PY'
@@ -89,10 +90,11 @@ jobs:
 
           imports = """import java.util.Properties
           import java.io.FileInputStream
+
           """
 
-          if "java.util.Properties" not in text:
-              text = imports + "\n" + text
+          if "import java.util.Properties" not in text:
+              text = imports + text
 
           signing_code = """
           val keyPropertiesFile = rootProject.file("key.properties")
@@ -105,24 +107,27 @@ jobs:
 
           if "keyPropertiesFile" not in text:
               text = text.replace(
-                  'android {',
-                  signing_code + '\nandroid {',
+                  "android {",
+                  signing_code + "\nandroid {",
                   1
               )
 
-          release_signing = """
+          signing_config = """
                   create("release") {
                       keyAlias = keyProperties["keyAlias"] as String
                       keyPassword = keyProperties["keyPassword"] as String
                       storeFile = file(keyProperties["storeFile"] as String)
                       storePassword = keyProperties["storePassword"] as String
+                      storeType = keyProperties["storeType"] as String
                   }
           """
 
           if 'create("release")' not in text:
               text = text.replace(
-                  '    buildTypes {',
-                  '    signingConfigs {\n' + release_signing + '    }\n\n    buildTypes {',
+                  "    buildTypes {",
+                  "    signingConfigs {\n" +
+                  signing_config +
+                  "    }\n\n    buildTypes {",
                   1
               )
 
