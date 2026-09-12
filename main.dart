@@ -2440,7 +2440,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
 
 class FeaturePage extends StatelessWidget {
   final String title; final String icon; final List<String> items;
-  const FeaturePage({super.key, required this.title, required this.icon, required this.items});
+  const FeaturePage({super.key, required this.title, this.icon = '✨', this.items = const ['Coming soon', 'WikaLive feature']});
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(title)),
