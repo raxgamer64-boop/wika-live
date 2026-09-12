@@ -743,194 +743,323 @@ class MeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
+
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
       builder: (context, snap) {
         final data = snap.data?.data() ?? {};
-        final name = (data['name'] ?? FirebaseAuth.instance.currentUser?.displayName ?? 'WikaLive User').toString();
+        final user = FirebaseAuth.instance.currentUser;
+        final name = (data['name'] ?? user?.displayName ?? 'WikaLive User').toString();
         final coins = (data['coins'] ?? 0).toString();
-        return SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(20, 14, 20, 20), children: [
-          Row(children: [const Spacer(), const Icon(Icons.search_rounded, size: 30), const SizedBox(width: 15), const Icon(Icons.settings_outlined, size: 28)]),
-          const SizedBox(height: 14),
-          Row(children: [const CircleAvatar(radius: 48, backgroundColor: Color(0xFFE8D5F8), child: Icon(Icons.person, size: 54)), const SizedBox(width: 17), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)), const SizedBox(height: 9), const Text('🇮🇳  ♀18   🏅11   💙0', style: TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 8), Text('ID: ${uid.substring(0, 8)}', style: const TextStyle(color: Colors.black38, fontWeight: FontWeight.w700))]))]),
-          const SizedBox(height: 25),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [_stat('0', 'Friends'), _stat('2', 'Follow'), _stat('0', 'Followers'), _stat('2', 'Visitors')]),
-          const SizedBox(height: 22),
-          _king(),
-          const SizedBox(height: 14),
-          Row(children: [Expanded(child: _wallet(context, '🪙', coins, 'Recharge', const Color(0xFFFFF3BE), () => openPage(context, const WalletPage()))), const SizedBox(width: 12), Expanded(child: _wallet(context, '💎', '0', 'Gems', const Color(0xFFF0E0FF), null))]),
-          const SizedBox(height: 14),
-          _goldBanner(),
-          const SizedBox(height: 16),
-          _menuGrid(context, true),
-          const SizedBox(height: 14),
-          _menuGrid(context, false),
-        ]));
+        final shortId = uid.length > 8 ? uid.substring(0, 8).toUpperCase() : uid.toUpperCase();
+
+        return Container(
+          color: const Color(0xFFF7F6FB),
+          child: SafeArea(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'My Space',
+                        style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                      ),
+                    ),
+                    _topIcon(Icons.search_rounded),
+                    const SizedBox(width: 10),
+                    _topIcon(Icons.settings_rounded, onTap: () => openPage(context, const SettingsPage())),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _profileHero(name, shortId),
+                const SizedBox(height: 14),
+                _statsCard(),
+                const SizedBox(height: 14),
+                _kingCard(),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(child: _coinCard(context, coins)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _gemCard()),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _inviteCard(),
+                const SizedBox(height: 16),
+                _sectionTitle('My Space', '7 tools'),
+                const SizedBox(height: 9),
+                _toolPanel(context, [
+                  _Tool(Icons.calendar_month_rounded, 'Task', const Color(0xFFFF5E72)),
+                  _Tool(Icons.favorite_rounded, 'Level', const Color(0xFFE63F9A)),
+                  _Tool(Icons.auto_awesome_rounded, 'Fans Club', const Color(0xFFFF4D91)),
+                  _Tool(Icons.sports_esports_rounded, 'Game', const Color(0xFF6554E8)),
+                  _Tool(Icons.backpack_rounded, 'Backpack', const Color(0xFFF06445)),
+                  _Tool(Icons.shopping_bag_rounded, 'Dress Store', const Color(0xFFE84B7A)),
+                  _Tool(Icons.confirmation_num_rounded, 'Event Center', const Color(0xFFFF695F)),
+                ]),
+                const SizedBox(height: 14),
+                _sectionTitle('Privileges & Support', '7 services'),
+                const SizedBox(height: 9),
+                _toolPanel(context, [
+                  _Tool(Icons.workspace_premium_rounded, 'VIP', const Color(0xFF17131F)),
+                  _Tool(Icons.shield_rounded, 'Guardian', const Color(0xFF4B93B8)),
+                  _Tool(Icons.login_rounded, 'Join Agency', const Color(0xFF5B9EB7)),
+                  _Tool(Icons.verified_user_rounded, 'Real Person', const Color(0xFF4B4B55)),
+                  _Tool(Icons.help_rounded, 'Help & Feedback', const Color(0xFFFF4F43)),
+                  _Tool(Icons.headset_mic_rounded, 'Customer Service', const Color(0xFF50515B)),
+                  _Tool(Icons.tune_rounded, 'Settings', const Color(0xFF5C98AA), isSetting: true),
+                ], onTap: (tool) {
+                  if (tool.isSetting) openPage(context, const SettingsPage());
+                }),
+                const SizedBox(height: 8),
+                const Center(
+                  child: Text(
+                    'WikaLive  •  Your space, your story',
+                    style: TextStyle(color: Color(0xFFAAA6B4), fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       },
     );
   }
 
-  static Widget _stat(String n, String l) => Column(children: [Text(n, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)), const SizedBox(height: 7), Text(l, style: const TextStyle(color: Colors.black45, fontWeight: FontWeight.w700))]);
-  Widget _king() => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF4A260A), Color(0xFF8A5B18)]), borderRadius: BorderRadius.circular(18)), child: Row(children: [const Text('💎', style: TextStyle(fontSize: 38)), const SizedBox(width: 12), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('King of Kings', style: TextStyle(color: Color(0xFFFFE2A0), fontSize: 18, fontWeight: FontWeight.w900)), SizedBox(height: 5), Text('Become and enjoy exclusive privileges', style: TextStyle(color: Color(0xFFFFE2A0), fontWeight: FontWeight.w600))])), Container(padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10), decoration: BoxDecoration(color: const Color(0xFFFFC13D), borderRadius: BorderRadius.circular(20)), child: const Text('Activate', style: TextStyle(fontWeight: FontWeight.w900)))]));
-  Widget _wallet(
-    BuildContext context,
-    String icon,
-    String value,
-    String label,
-    Color color,
-    VoidCallback? onTap,
-  ) {
+  Widget _topIcon(IconData icon, {VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(15),
       child: Container(
-        height: 112,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(18),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: const [BoxShadow(color: Color(0x12000000), blurRadius: 14, offset: Offset(0, 5))],
         ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 58,
-              child: Center(
-                child: Text(icon, style: const TextStyle(fontSize: 40)),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (onTap != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFFCA3A), Color(0xFFFF8538)],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          label,
-                          maxLines: 1,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  const SizedBox(height: 7),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 23,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        child: Icon(icon, color: const Color(0xFF24212B), size: 23),
       ),
     );
   }
 
-  Widget _goldBanner() => Container(height: 105, decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF9A5716), Color(0xFFFFD45B), Color(0xFF8A4B12)]), borderRadius: BorderRadius.circular(16)), child: const Center(child: Text('Earn up to \$27\nby inviting new users', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900))));
-  Widget _menuGrid(BuildContext context, bool first) {
-    final items = first
-        ? <List<dynamic>>[
-            ['📅', 'Task'],
-            ['💗', 'Level'],
-            ['💖', 'Fans Club'],
-            ['🎮', 'Game'],
-            ['🎒', 'Backpack'],
-            ['🛍️', 'Dress Store'],
-            ['🎟️', 'Event Center'],
-          ]
-        : <List<dynamic>>[
-            ['♛', 'VIP'],
-            ['🛡️', 'Guardian'],
-            ['↪️', 'Join agency'],
-            ['🕵️', 'Real person detection'],
-            ['❓', 'Help & Feedback'],
-            ['🎧', 'Customer Service'],
-            ['⚙️', 'Setting'],
-          ];
-
+  Widget _profileHero(String name, String id) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(8, 18, 8, 12),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2A1C43), Color(0xFF6B3D91), Color(0xFFB34D9B)],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [BoxShadow(color: Color(0x301D1030), blurRadius: 24, offset: Offset(0, 12))],
       ),
+      child: Stack(
+        children: [
+          Positioned(right: -22, top: -30, child: _glowCircle(115, const Color(0x35FFFFFF))),
+          Positioned(right: 45, bottom: -45, child: _glowCircle(95, const Color(0x25FFD1F5))),
+          Row(
+            children: [
+              Container(
+                width: 82,
+                height: 82,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(colors: [Color(0xFFFFD37A), Color(0xFFFF6FB4)]),
+                  border: Border.all(color: Colors.white, width: 3),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: const CircleAvatar(
+                  backgroundColor: Color(0xFFE8D7F8),
+                  child: Icon(Icons.person_rounded, color: Color(0xFF5B3A8F), size: 45),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                        ),
+                        const SizedBox(width: 7),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(color: const Color(0x35FFFFFF), borderRadius: BorderRadius.circular(9)),
+                          child: const Text('LV.1', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    Text('ID: $id', style: const TextStyle(color: Color(0xFFDCCFE9), fontSize: 12, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 9),
+                    Row(
+                      children: [
+                        _miniBadge('🇮🇳', 'India'),
+                        const SizedBox(width: 7),
+                        _miniBadge('♀', '18'),
+                        const SizedBox(width: 7),
+                        _miniBadge('✦', '11'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 28),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _glowCircle(double size, Color color) => Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, color: color));
+
+  Widget _miniBadge(String icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(color: const Color(0x22FFFFFF), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0x22FFFFFF))),
+      child: Text('$icon $text', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+    );
+  }
+
+  Widget _statsCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 15),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), boxShadow: const [BoxShadow(color: Color(0x0C000000), blurRadius: 18, offset: Offset(0, 6))]),
+      child: Row(
+        children: [
+          _stat('0', 'Friends'),
+          _divider(),
+          _stat('2', 'Following'),
+          _divider(),
+          _stat('0', 'Followers'),
+          _divider(),
+          _stat('2', 'Visitors'),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() => Container(width: 1, height: 34, color: const Color(0xFFEDEAF1));
+
+  Widget _stat(String value, String label) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(value, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: Color(0xFF22202A))),
+          const SizedBox(height: 4),
+          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF9994A3))),
+        ],
+      ),
+    );
+  }
+
+  Widget _kingCard() {
+    return Container(
+      height: 126,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFF17111E), Color(0xFF4B2267), Color(0xFF9A4B82)], begin: Alignment.centerLeft, end: Alignment.centerRight),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: const [BoxShadow(color: Color(0x281B1025), blurRadius: 18, offset: Offset(0, 8))],
+      ),
+      child: Row(
+        children: [
+          Container(width: 58, height: 58, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x25FFFFFF), border: Border.all(color: const Color(0x55FFFFFF))), child: const Center(child: Text('💎', style: TextStyle(fontSize: 32)))),
+          const SizedBox(width: 13),
+          const Expanded(
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('KING OF KINGS', style: TextStyle(color: Color(0xFFFFD98B), fontSize: 12, letterSpacing: 1.2, fontWeight: FontWeight.w900)),
+              SizedBox(height: 5),
+              Text('Unlock your royal privileges', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
+              SizedBox(height: 4),
+              Text('Exclusive status • special benefits', style: TextStyle(color: Color(0xFFDCCFE3), fontSize: 10.5, fontWeight: FontWeight.w600)),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFFD66B), Color(0xFFFF9D36)]), borderRadius: BorderRadius.circular(16)), child: const Text('ACTIVATE', style: TextStyle(color: Color(0xFF3A2411), fontSize: 11, fontWeight: FontWeight.w900))),
+        ],
+      ),
+    );
+  }
+
+  Widget _coinCard(BuildContext context, String coins) {
+    return InkWell(
+      onTap: () => openPage(context, const WalletPage()),
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        height: 112,
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFFF3B9), Color(0xFFFFE7A1)]), borderRadius: BorderRadius.circular(22)),
+        child: Row(children: [Container(width: 48, height: 48, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFFFD66B)), child: const Center(child: Text('🪙', style: TextStyle(fontSize: 28)))), const SizedBox(width: 10), Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFFC83D), Color(0xFFFF7638)]), borderRadius: BorderRadius.circular(12)), child: const Text('RECHARGE', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900))), const SizedBox(height: 7), Text(coins, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900))]))]),
+      ),
+    );
+  }
+
+  Widget _gemCard() {
+    return Container(
+      height: 112,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFF0E0FF), Color(0xFFE5D1FF)]), borderRadius: BorderRadius.circular(22)),
+      child: Row(children: [Container(width: 48, height: 48, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x33FFFFFF)), child: const Center(child: Text('💎', style: TextStyle(fontSize: 30)))), const SizedBox(width: 10), const Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text('GEMS', style: TextStyle(fontSize: 11, letterSpacing: 1, color: Color(0xFF777083), fontWeight: FontWeight.w900)), SizedBox(height: 4), Text('0', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900))])]),
+    );
+  }
+
+  Widget _inviteCard() {
+    return Container(
+      height: 122,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF3A1A52), Color(0xFF8B3F7A), Color(0xFFD36B75)]), borderRadius: BorderRadius.circular(24), boxShadow: const [BoxShadow(color: Color(0x221F1028), blurRadius: 16, offset: Offset(0, 7))]),
+      child: Row(children: [Container(width: 52, height: 52, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0x22FFFFFF), border: Border.all(color: const Color(0x55FFFFFF))), child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFFFD16B), size: 28)), const SizedBox(width: 14), const Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text('INVITE & EARN', style: TextStyle(color: Color(0xFFFFD16B), fontSize: 11, letterSpacing: 1.1, fontWeight: FontWeight.w900)), SizedBox(height: 4), Text('Earn up to ₹2,250', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)), SizedBox(height: 3), Text('Invite new users and unlock rewards', style: TextStyle(color: Color(0xFFE8DCEB), fontSize: 10.5, fontWeight: FontWeight.w600))])), const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 17)]),
+    );
+  }
+
+  Widget _sectionTitle(String title, String count) {
+    return Row(children: [Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF292630)))), Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: const Color(0xFFEDE7F6), borderRadius: BorderRadius.circular(10)), child: Text(count, style: const TextStyle(color: Color(0xFF73538E), fontSize: 9.5, fontWeight: FontWeight.w800)))]);
+  }
+
+  Widget _toolPanel(BuildContext context, List<_Tool> tools, {void Function(_Tool tool)? onTap}) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(7, 10, 7, 10),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: const [BoxShadow(color: Color(0x0C000000), blurRadius: 18, offset: Offset(0, 6))]),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisExtent: 106,
-          crossAxisSpacing: 4,
-          mainAxisSpacing: 4,
-        ),
+        itemCount: tools.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisExtent: 106, crossAxisSpacing: 2, mainAxisSpacing: 2),
         itemBuilder: (context, index) {
-          final item = items[index];
+          final tool = tools[index];
           return InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () {
-              if (item[1] == 'Setting') {
-                openPage(context, const SettingsPage());
-              }
-            },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(item[0], style: const TextStyle(fontSize: 34)),
-                const SizedBox(height: 9),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Text(
-                    item[1],
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      height: 1.15,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-              ],
+            onTap: () => onTap?.call(tool),
+            borderRadius: BorderRadius.circular(18),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 7),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Container(width: 54, height: 54, decoration: BoxDecoration(gradient: LinearGradient(colors: [tool.color.withValues(alpha: 0.14), tool.color.withValues(alpha: 0.06)]), shape: BoxShape.circle), child: Icon(tool.icon, color: tool.color, size: 29)),
+                const SizedBox(height: 8),
+                Text(tool.label, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, height: 1.12, fontWeight: FontWeight.w800, color: Color(0xFF2A2730))),
+              ]),
             ),
           );
         },
       ),
     );
   }
+}
+
+class _Tool {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool isSetting;
+  const _Tool(this.icon, this.label, this.color, {this.isSetting = false});
 }
 
 class LiveRoomPage extends StatefulWidget {
