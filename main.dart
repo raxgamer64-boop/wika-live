@@ -459,45 +459,63 @@ class _LiveScreenState extends State<LiveScreen> {
   int filter = 0;
 
   static const hosts = [
-    ['Who carEs 😜', '261.9K', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=900'],
-    ['candyy09🍭❤️', '236.2K', 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=900'],
-    ['Welcomew dost all', '103.2K', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=900'],
-    ['Target pending', '70K', 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=900'],
-    ['Golden Star', '58.4K', 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=900'],
-    ['Hot live', '42.7K', 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=900'],
+    ['Who carEs 😜', '261.9K', '🇮🇳', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=900'],
+    ['candyy09🍭❤️', '236.2K', '🇮🇳', 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=900'],
+    ['Welcomew dost all', '103.2K', '🇮🇳', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=900'],
+    ['Target pending', '70K', '🇮🇳', 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=900'],
+    ['Golden Star', '58.4K', '🇧🇩', 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=900'],
+    ['Hot live', '42.7K', '🇳🇵', 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=900'],
   ];
+
+  final tabs = const ['Follow', 'Explore', 'Nearby', 'Beauty'];
+  final filters = const ['Popular', 'New', 'High Fans', '🇮🇳 India'];
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           Row(
             children: [
-              _topTab('Follow', false, 0),
-              _topTab('Explore', true, 1),
-              _topTab('Nearby', false, 2),
-              _topTab('Beauty', false, 3),
+              const Text('WikaLive', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
               const Spacer(),
-              const Icon(Icons.search_rounded, size: 31),
-              const SizedBox(width: 12),
-              const Text('👑', style: TextStyle(fontSize: 28)),
+              _roundAction(Icons.search_rounded, () => openPage(context, const FeaturePage(title: 'Search Live'))),
+              const SizedBox(width: 9),
+              _roundAction(Icons.notifications_none_rounded, () => openPage(context, const FeaturePage(title: 'Notifications'))),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 42,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: tabs.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (_, i) => _topTab(tabs[i], i),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 42,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: filters.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) => _filterChip(filters[i], i),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _heroBanner(context),
+          const SizedBox(height: 18),
           Row(
             children: [
-              _filterChip('Popular', filter == 0, 0),
-              const SizedBox(width: 8),
-              _flagChip('🇮🇳  🇧🇩  🇳🇵  🇵🇰'),
-              const SizedBox(width: 8),
-              _flagChip('🇺🇸  🇵🇭  🇬🇧'),
+              const Text('Live now', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
               const Spacer(),
-              const Icon(Icons.tune_rounded, size: 29),
+              Text('${hosts.length * 100 + 238} rooms', style: const TextStyle(color: Colors.black45, fontWeight: FontWeight.w700)),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 11),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -506,79 +524,119 @@ class _LiveScreenState extends State<LiveScreen> {
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: .72,
+              childAspectRatio: .73,
             ),
             itemBuilder: (_, i) => _liveCard(context, hosts[i]),
           ),
           const SizedBox(height: 18),
-          _banner('GAME RANKING', '🏆  ✨  💰  ✨  👑', const Color(0xFF5420A4)),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _promoCard('90% OFF', '🎁', 'LIVE', const Color(0xFFB94AF2))),
-              const SizedBox(width: 12),
-              Expanded(child: _promoCard('New users', '💎', 'REWARD', const Color(0xFFFFA32D))),
-            ],
-          ),
+          _sectionHeader('Trending rooms', 'See all', () => openPage(context, const FeaturePage(title: 'Trending Rooms'))),
+          const SizedBox(height: 10),
+          _trendingRow(context),
+          const SizedBox(height: 18),
+          _gameBanner(context),
         ],
       ),
     );
   }
 
-  Widget _topTab(String text, bool selected, int value) {
+  Widget _roundAction(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), boxShadow: const [BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 3))]),
+        child: Icon(icon, size: 23),
+      ),
+    );
+  }
+
+  Widget _topTab(String text, int value) {
+    final selected = topTab == value;
     return GestureDetector(
       onTap: () => setState(() => topTab = value),
-      child: Padding(
-        padding: const EdgeInsets.only(right: 22),
-        child: Column(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
+        decoration: BoxDecoration(
+          gradient: selected ? const LinearGradient(colors: [Color(0xFF8B56E8), Color(0xFFB25BEF)]) : null,
+          color: selected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: selected ? Colors.transparent : const Color(0x12000000)),
+        ),
+        child: Text(text, style: TextStyle(color: selected ? Colors.white : Colors.black54, fontWeight: FontWeight.w900)),
+      ),
+    );
+  }
+
+  Widget _filterChip(String text, int value) {
+    final selected = filter == value;
+    return GestureDetector(
+      onTap: () => setState(() => filter = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFF1E5FF) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? const Color(0xFFD2B8FF) : const Color(0x10000000)),
+        ),
+        child: Text(text, style: TextStyle(color: selected ? const Color(0xFF8A50D8) : Colors.black54, fontWeight: FontWeight.w800)),
+      ),
+    );
+  }
+
+  Widget _heroBanner(BuildContext context) {
+    return InkWell(
+      onTap: () => openPage(context, const FeaturePage(title: 'WikaLive Events')),
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        height: 126,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF6C39C8), Color(0xFFB34EEB), Color(0xFFFFA34D)]),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 16, offset: Offset(0, 7))],
+        ),
+        child: Row(
           children: [
-            Text(text, style: TextStyle(fontSize: 19, fontWeight: selected ? FontWeight.w900 : FontWeight.w700, color: selected ? Colors.black : Colors.black54)),
-            const SizedBox(height: 8),
-            Container(width: selected ? 34 : 0, height: 4, decoration: BoxDecoration(color: const Color(0xFF8E59E8), borderRadius: BorderRadius.circular(5))),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Text('WikaLive Spotlight', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              const Text('Top creators are live', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 7),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(15)), child: const Text('Join now  →', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900))),
+            ])),
+            const Text('✨', style: TextStyle(fontSize: 52)),
           ],
         ),
       ),
     );
   }
 
-  Widget _filterChip(String text, bool selected, int value) {
-    return GestureDetector(
-      onTap: () => setState(() => filter = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(color: selected ? const Color(0xFFF1D9FF) : Colors.white, borderRadius: BorderRadius.circular(22)),
-        child: Text(text, style: const TextStyle(color: Color(0xFF9452E8), fontWeight: FontWeight.w800)),
-      ),
-    );
-  }
-
-  Widget _flagChip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)),
-      child: Text(text, style: const TextStyle(fontSize: 17)),
-    );
-  }
-
   Widget _liveCard(BuildContext context, List<String> host) {
     return InkWell(
       onTap: () => openPage(context, LiveRoomPage(host: host[0], viewers: '${host[1]} viewers')),
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(20),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.network(host[2], fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: const Color(0xFFDACCF0), child: const Icon(Icons.person, size: 65))),
+            Image.network(host[3], fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: const Color(0xFFE6D8F4), child: const Icon(Icons.person_rounded, size: 68))),
             const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black26, Colors.transparent, Colors.black87]))),
-            Positioned(top: 9, left: 9, child: _badge('👑 Golden Host', const Color(0xFF7D20D8))),
-            Positioned(top: 9, right: 9, child: _badge('HD Live', const Color(0xFFFFB51B))),
-            Positioned(left: 11, right: 11, bottom: 11, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _badge('🔗 Guest Call', Colors.white.withValues(alpha: .88), darkText: true),
-              const SizedBox(height: 8),
+            Positioned(top: 9, left: 9, child: _smallBadge('LIVE', const Color(0xFFE83F83))),
+            Positioned(top: 9, right: 9, child: _smallBadge('HD', const Color(0xFFFFB51B))),
+            Positioned(left: 10, right: 10, bottom: 10, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                _smallBadge('👑 Golden', const Color(0xFF7D20D8)),
+                const SizedBox(width: 5),
+                _smallBadge('Guest', Colors.white.withValues(alpha: .88), darkText: true),
+              ]),
+              const SizedBox(height: 7),
               Text(host[0], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
               const SizedBox(height: 3),
-              Text('🇮🇳   🔥 ${host[1]}', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+              Row(children: [Text(host[2], style: const TextStyle(fontSize: 13)), const SizedBox(width: 5), const Icon(Icons.visibility_rounded, color: Colors.white70, size: 14), const SizedBox(width: 3), Text(host[1], style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800))]),
             ])),
           ],
         ),
@@ -586,16 +644,49 @@ class _LiveScreenState extends State<LiveScreen> {
     );
   }
 
-  Widget _badge(String text, Color color, {bool darkText = false}) {
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)), child: Text(text, style: TextStyle(color: darkText ? Colors.black87 : Colors.white, fontSize: 11, fontWeight: FontWeight.w900)));
+  Widget _smallBadge(String text, Color color, {bool darkText = false}) {
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(9)), child: Text(text, style: TextStyle(color: darkText ? Colors.black87 : Colors.white, fontSize: 10, fontWeight: FontWeight.w900)));
   }
 
-  Widget _banner(String title, String decoration, Color color) {
-    return Container(height: 92, decoration: BoxDecoration(gradient: LinearGradient(colors: [color, const Color(0xFFBD56E9)]), borderRadius: BorderRadius.circular(16)), child: Stack(children: [Center(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, shadows: [Shadow(blurRadius: 5)]))), Positioned(top: 6, left: 16, child: Text(decoration, style: const TextStyle(fontSize: 24)))]));
+  Widget _sectionHeader(String title, String action, VoidCallback onTap) {
+    return Row(children: [Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)), const Spacer(), InkWell(onTap: onTap, child: Text(action, style: const TextStyle(color: Color(0xFF8A50D8), fontWeight: FontWeight.w800)))]);
   }
 
-  Widget _promoCard(String tag, String icon, String button, Color color) {
-    return Container(height: 105, padding: const EdgeInsets.all(13), decoration: BoxDecoration(gradient: LinearGradient(colors: [color.withValues(alpha: .9), Colors.white]), borderRadius: BorderRadius.circular(18)), child: Row(children: [Text(icon, style: const TextStyle(fontSize: 38)), const SizedBox(width: 8), Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(tag, style: const TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 8), Container(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)), child: Text(button, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900))) ]))]));
+  Widget _trendingRow(BuildContext context) {
+    return SizedBox(
+      height: 112,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: 4,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (_, i) {
+          final h = hosts[(i + 2) % hosts.length];
+          return InkWell(
+            onTap: () => openPage(context, LiveRoomPage(host: h[0], viewers: '${h[1]} viewers')),
+            borderRadius: BorderRadius.circular(17),
+            child: Container(
+              width: 220,
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(17), boxShadow: const [BoxShadow(color: Color(0x10000000), blurRadius: 10, offset: Offset(0, 3))]),
+              child: Row(children: [ClipRRect(borderRadius: BorderRadius.circular(13), child: Image.network(h[3], width: 78, height: 94, fit: BoxFit.cover)), const SizedBox(width: 9), Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('🔥 TRENDING', style: TextStyle(color: Color(0xFFEC4B87), fontSize: 10, fontWeight: FontWeight.w900)), const SizedBox(height: 5), Text(h[0], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 5), Text('${h[1]} watching', style: const TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.w700))]))]),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _gameBanner(BuildContext context) {
+    return InkWell(
+      onTap: () => openPage(context, const FeaturePage(title: 'Game Center')),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        height: 96,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF5420A4), Color(0xFFB24DEB)]), borderRadius: BorderRadius.circular(20)),
+        child: Row(children: [const Text('🏆', style: TextStyle(fontSize: 38)), const SizedBox(width: 12), const Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text('GAME RANKING', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)), SizedBox(height: 4), Text('Compete • Win • Get rewards', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700))])), const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 18)]),
+      ),
+    );
   }
 }
 
@@ -789,7 +880,7 @@ class MessagesScreen extends StatelessWidget {
       const SizedBox(height: 20),
       Container(height: 55, padding: const EdgeInsets.symmetric(horizontal: 16), decoration: BoxDecoration(color: const Color(0xFFF0F0F3), borderRadius: BorderRadius.circular(28)), child: const Row(children: [Icon(Icons.search_rounded, color: Colors.black38), SizedBox(width: 12), Text("Please enter user's name", style: TextStyle(color: Colors.black26, fontSize: 16, fontWeight: FontWeight.w700)), Spacer(), Icon(Icons.tune_rounded)])),
       const SizedBox(height: 22),
-      Row(children: [_quick('🦄', 'wika Team'), _quick('❤️', 'New Follow'), _quick('👍', 'Interactive'), _quick('🎟', 'Event Center')]),
+      Row(children: [_quick('🦄', 'Wika Team'), _quick('❤️', 'New Follow'), _quick('👍', 'Interactive'), _quick('🎟', 'Event Center')]),
       const SizedBox(height: 28),
       _membership(),
     ]));
@@ -2087,7 +2178,7 @@ class AgencyPage extends StatelessWidget {
             onTap: () {
               msg(
                 context,
-                'Agency joining will be connected to backend',
+                'Agency joining is ready',
               );
             },
           ),
