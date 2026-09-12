@@ -87,36 +87,50 @@ jobs:
           p = Path("app/android/app/build.gradle.kts")
           text = p.read_text()
 
-          signing = '''
-          import java.util.Properties
+          imports = """import java.util.Properties
           import java.io.FileInputStream
+          """
 
+          if "java.util.Properties" not in text:
+              text = imports + "\n" + text
+
+          signing_code = """
           val keyPropertiesFile = rootProject.file("key.properties")
           val keyProperties = Properties()
 
           if (keyPropertiesFile.exists()) {
               keyProperties.load(FileInputStream(keyPropertiesFile))
           }
+          """
 
-          android {
-              signingConfigs {
+          if "keyPropertiesFile" not in text:
+              text = text.replace(
+                  'android {',
+                  signing_code + '\nandroid {',
+                  1
+              )
+
+          release_signing = """
                   create("release") {
                       keyAlias = keyProperties["keyAlias"] as String
                       keyPassword = keyProperties["keyPassword"] as String
                       storeFile = file(keyProperties["storeFile"] as String)
                       storePassword = keyProperties["storePassword"] as String
                   }
-              }
+          """
 
-              buildTypes {
-                  getByName("release") {
-                      signingConfig = signingConfigs.getByName("release")
-                  }
-              }
-          }
-          '''
+          if 'create("release")' not in text:
+              text = text.replace(
+                  '    buildTypes {',
+                  '    signingConfigs {\n' + release_signing + '    }\n\n    buildTypes {',
+                  1
+              )
 
-          text += "\n" + signing
+          text = text.replace(
+              'signingConfig = signingConfigs.getByName("debug")',
+              'signingConfig = signingConfigs.getByName("release")'
+          )
+
           p.write_text(text)
           PY
 
@@ -127,9 +141,9 @@ jobs:
 
       - name: Get SHA fingerprints
         run: |
-          echo "=== WikaLive Release APK SHA-1 / SHA-256 ==="
-          keytool -printcert \
-            -jarfile app/build/app/outputs/flutter-apk/app-release.apk
+          echo "=== WikaLive Release APK SHA fingerprints ==="
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs app/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
