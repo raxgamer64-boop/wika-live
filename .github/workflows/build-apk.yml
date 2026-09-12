@@ -123,13 +123,18 @@ jobs:
           flutter clean
           flutter pub get
           flutter build apk --release
-
       - name: Get SHA fingerprints
         run: |
           echo "======================================"
-          echo "WikaLive RELEASE APK SHA FINGERPRINTS"
+          echo "WikaLive RELEASE KEY SHA FINGERPRINTS"
           echo "======================================"
-          keytool -printcert \
+
+          keytool -list -v \
+            -keystore app/android/app/upload-keystore.jks \
+            -storepass android \
+            -alias upload \
+            | grep -E "SHA1:|SHA256:"
+  
             -jarfile app/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK
