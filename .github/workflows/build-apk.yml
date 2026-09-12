@@ -66,10 +66,61 @@ jobs:
           test -f app/android/app/google-services.json
           echo "Firebase config found."
 
-          grep -n "com.google.gms.google-services" app/android/settings.gradle.kts
-          grep -n "com.google.gms.google-services" app/android/app/build.gradle.kts
+      - name: Setup signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > app/android/app/upload-keystore.jks
 
-      - name: Build APK
+          cat > app/android/key.properties <<EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/android/app/build.gradle.kts")
+          text = p.read_text()
+
+          signing = '''
+          import java.util.Properties
+          import java.io.FileInputStream
+
+          val keyPropertiesFile = rootProject.file("key.properties")
+          val keyProperties = Properties()
+
+          if (keyPropertiesFile.exists()) {
+              keyProperties.load(FileInputStream(keyPropertiesFile))
+          }
+
+          android {
+              signingConfigs {
+                  create("release") {
+                      keyAlias = keyProperties["keyAlias"] as String
+                      keyPassword = keyProperties["keyPassword"] as String
+                      storeFile = file(keyProperties["storeFile"] as String)
+                      storePassword = keyProperties["storePassword"] as String
+                  }
+              }
+
+              buildTypes {
+                  getByName("release") {
+                      signingConfig = signingConfigs.getByName("release")
+                  }
+              }
+          }
+          '''
+
+          text += "\n" + signing
+          p.write_text(text)
+          PY
+
+      - name: Build signed APK
         run: |
           cd app
           flutter build apk --release
@@ -77,7 +128,8 @@ jobs:
       - name: Get SHA fingerprints
         run: |
           echo "=== WikaLive Release APK SHA-1 / SHA-256 ==="
-          keytool -printcert -jarfile app/build/app/outputs/flutter-apk/app-release.apk
+          keytool -printcert \
+            -jarfile app/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
