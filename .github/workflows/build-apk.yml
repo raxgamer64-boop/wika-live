@@ -61,94 +61,76 @@ jobs:
           flutter pub add google_sign_in:6.3.0
           flutter pub get
 
-      - name: Verify Firebase config
+      - name: Create release keystore
         run: |
-          test -f app/android/app/google-services.json
-          echo "Firebase config found."
+          keytool -genkeypair \
+            -v \
+            -keystore app/android/app/upload-keystore.jks \
+            -storepass android \
+            -keypass android \
+            -alias upload \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=WikaLive, OU=WikaLive, O=WikaLive, L=India, ST=Jharkhand, C=IN"
 
-      - name: Setup signing
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      - name: Configure release signing
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > app/android/app/upload-keystore.jks
-
-          cat > app/android/key.properties <<EOF
-          storePassword=$KEYSTORE_PASSWORD
-          keyPassword=$KEYSTORE_PASSWORD
-          keyAlias=$KEY_ALIAS
-          storeFile=upload-keystore.jks
-          storeType=jks
-          EOF
-
           python3 - <<'PY'
           from pathlib import Path
 
           p = Path("app/android/app/build.gradle.kts")
           text = p.read_text()
 
-          imports = """import java.util.Properties
-          import java.io.FileInputStream
-
-          """
-
-          if "import java.util.Properties" not in text:
-              text = imports + text
-
-          signing_code = """
-          val keyPropertiesFile = rootProject.file("key.properties")
-          val keyProperties = Properties()
-
-          if (keyPropertiesFile.exists()) {
-              keyProperties.load(FileInputStream(keyPropertiesFile))
-          }
-          """
-
-          if "keyPropertiesFile" not in text:
-              text = text.replace(
-                  "android {",
-                  signing_code + "\nandroid {",
-                  1
-              )
-
-          signing_config = """
+          text = text.replace(
+              'android {',
+              '''android {
+              signingConfigs {
                   create("release") {
-                      keyAlias = keyProperties["keyAlias"] as String
-                      keyPassword = keyProperties["keyPassword"] as String
-                      storeFile = file(keyProperties["storeFile"] as String)
-                      storePassword = keyProperties["storePassword"] as String
-                      storeType = keyProperties["storeType"] as String
+                      storeFile = file("upload-keystore.jks")
+                      storePassword = "android"
+                      keyAlias = "upload"
+                      keyPassword = "android"
                   }
-          """
-
-          if 'create("release")' not in text:
-              text = text.replace(
-                  "    buildTypes {",
-                  "    signingConfigs {\n" +
-                  signing_config +
-                  "    }\n\n    buildTypes {",
-                  1
-              )
+              }''',
+              1
+          )
 
           text = text.replace(
-              'signingConfig = signingConfigs.getByName("debug")',
-              'signingConfig = signingConfigs.getByName("release")'
+              'buildTypes {',
+              '''buildTypes {''',
+              1
+          )
+
+          text = text.replace(
+              'release {',
+              '''release {
+                  signingConfig = signingConfigs.getByName("release")''',
+              1
           )
 
           p.write_text(text)
           PY
 
-      - name: Build signed APK
+      - name: Verify Firebase config
+        run: |
+          test -f app/android/app/google-services.json
+          echo "Firebase config found."
+
+      - name: Build APK
         run: |
           cd app
+          flutter clean
+          flutter pub get
           flutter build apk --release
 
       - name: Get SHA fingerprints
         run: |
-          echo "=== WikaLive Release APK SHA fingerprints ==="
-          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
-          "$APKSIGNER" verify --print-certs app/build/app/outputs/flutter-apk/app-release.apk
+          echo "======================================"
+          echo "WikaLive RELEASE APK SHA FINGERPRINTS"
+          echo "======================================"
+          keytool -printcert \
+            -jarfile app/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
