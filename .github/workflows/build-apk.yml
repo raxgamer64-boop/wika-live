@@ -79,7 +79,7 @@ jobs:
           keyPassword=$KEYSTORE_PASSWORD
           keyAlias=$KEY_ALIAS
           storeFile=upload-keystore.jks
-          storeType=PKCS12
+          storeType=jks
           EOF
 
           python3 - <<'PY'
