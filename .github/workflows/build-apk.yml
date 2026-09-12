@@ -71,6 +71,10 @@ jobs:
         run: |
           cd app
           flutter build apk --release
+                - name: Get SHA fingerprints
+        run: |
+          echo "=== WikaLive Release APK SHA-1 / SHA-256 ==="
+          keytool -printcert -jarfile app/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
