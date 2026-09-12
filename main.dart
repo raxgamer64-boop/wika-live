@@ -789,7 +789,7 @@ class MessagesScreen extends StatelessWidget {
       const SizedBox(height: 20),
       Container(height: 55, padding: const EdgeInsets.symmetric(horizontal: 16), decoration: BoxDecoration(color: const Color(0xFFF0F0F3), borderRadius: BorderRadius.circular(28)), child: const Row(children: [Icon(Icons.search_rounded, color: Colors.black38), SizedBox(width: 12), Text("Please enter user's name", style: TextStyle(color: Colors.black26, fontSize: 16, fontWeight: FontWeight.w700)), Spacer(), Icon(Icons.tune_rounded)])),
       const SizedBox(height: 22),
-      Row(children: [_quick('🦄', 'Crush Team'), _quick('❤️', 'New Follow'), _quick('👍', 'Interactive'), _quick('🎟', 'Event Center')]),
+      Row(children: [_quick('🦄', 'wika Team'), _quick('❤️', 'New Follow'), _quick('👍', 'Interactive'), _quick('🎟', 'Event Center')]),
       const SizedBox(height: 28),
       _membership(),
     ]));
