@@ -19,10 +19,16 @@ jobs:
       - name: Create Flutter project
         run: |
           set -e
+
           flutter create --project-name wika_live app
 
           cp main.dart app/lib/main.dart
           cp google-services.json app/android/app/google-services.json
+
+          test -f app/android/app/google-services.json
+
+          echo "Flutter project created."
+          echo "google-services.json found."
 
       - name: Configure Firebase Google Services
         run: |
@@ -56,16 +62,11 @@ jobs:
               )
               build.write_text(text)
 
-          print("===== settings.gradle.kts =====")
-          print(settings.read_text())
-
-          print("===== app/build.gradle.kts =====")
-          print(build.read_text())
+          print("Firebase Google Services configured.")
           PY
 
           echo "===== CHECK GOOGLE SERVICES JSON ====="
           test -f android/app/google-services.json
-
           echo "google-services.json FOUND"
 
       - name: Get packages
@@ -95,10 +96,13 @@ jobs:
           print("Project ID:", data["project_info"]["project_id"])
           print("Project Number:", data["project_info"]["project_number"])
 
+          found = False
+
           for client in data["client"]:
               package = client["client_info"]["android_client_info"]["package_name"]
 
               if package == "com.example.wika_live":
+                  found = True
                   print("PACKAGE: com.example.wika_live")
 
                   for oauth in client.get("oauth_client", []):
@@ -108,17 +112,103 @@ jobs:
                           oauth.get("client_id"),
                           oauth.get("android_info", {}).get("certificate_hash")
                       )
+
+          if not found:
+              raise SystemExit(
+                  "ERROR: com.example.wika_live not found in google-services.json"
+              )
           PY
 
       - name: Check Flutter project
         run: |
           set -e
           cd app
+
           flutter analyze || true
-      - name: Setup signing
+
+      - name: Setup release signing
         run: |
           set -e
+
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/android/app/upload-keystore.jks
+
+          test -s app/android/app/upload-keystore.jks
+
+          echo "======================================"
+          echo "RELEASE KEYSTORE FOUND"
+          echo "======================================"
+
+          keytool -list \
+            -keystore app/android/app/upload-keystore.jks \
+            -storepass android \
+            -alias upload
+
+      - name: Configure release signing
+        run: |
+          set -e
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/android/app/build.gradle.kts")
+          text = p.read_text()
+
+          # Add release signing configuration
+          if 'create("release")' not in text:
+              signing_block = '''
+              signingConfigs {
+                  create("release") {
+                      storeFile = file("upload-keystore.jks")
+                      storePassword = "android"
+                      keyAlias = "upload"
+                      keyPassword = "android"
+                  }
+              }
+              '''
+
+              text = text.replace(
+                  "android {",
+                  "android {" + signing_block,
+                  1
+              )
+
+          # Replace Flutter's default debug signing
+          text = text.replace(
+              'signingConfig = signingConfigs.getByName("debug")',
+              'signingConfig = signingConfigs.getByName("release")'
+          )
+
+          # If release signing line doesn't exist, add it inside release {}
+          if 'signingConfig = signingConfigs.getByName("release")' not in text:
+              text = text.replace(
+                  'release {',
+                  '''release {
+                      signingConfig = signingConfigs.getByName("release")''',
+                  1
+              )
+
+          p.write_text(text)
+
+          print("======================================")
+          print("RELEASE SIGNING CONFIGURED")
+          print("======================================")
+          print(p.read_text())
+          PY
+
+      - name: Verify release keystore SHA
+        run: |
+          set -e
+
+          echo "======================================"
+          echo "RELEASE KEYSTORE SHA"
+          echo "======================================"
+
+          keytool -list -v \
+            -keystore app/android/app/upload-keystore.jks \
+            -storepass android \
+            -alias upload \
+            | grep -E "SHA1:|SHA256:"
+
       - name: Build Release APK
         run: |
           set -e
@@ -137,23 +227,12 @@ jobs:
           echo "FIREBASE GENERATED RESOURCES"
           echo "======================================"
 
-          echo "Searching for google-services generated files..."
-
           find app/build -type f \
             -path "*google-services*" \
             -print
 
           echo "======================================"
-          echo "Searching values.xml..."
-          echo "======================================"
-
-          find app/build -type f \
-            -name "values.xml" \
-            -path "*google-services*" \
-            -exec sh -c 'echo "----- $1 -----"; cat "$1"' _ {} \;
-
-          echo "======================================"
-          echo "Checking default_web_client_id..."
+          echo "CHECKING default_web_client_id"
           echo "======================================"
 
           grep -R \
@@ -162,7 +241,7 @@ jobs:
             2>/dev/null || true
 
           echo "======================================"
-          echo "Checking google_app_id..."
+          echo "CHECKING google_app_id"
           echo "======================================"
 
           grep -R \
@@ -196,7 +275,7 @@ jobs:
             | tail -1)
 
           echo "======================================"
-          echo "APK SHA FINGERPRINTS"
+          echo "FINAL APK SHA FINGERPRINTS"
           echo "======================================"
 
           "$APKSIGNER" verify \
