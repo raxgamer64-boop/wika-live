@@ -19,13 +19,12 @@ jobs:
       - name: Create Flutter project
         run: |
           set -e
-
           flutter create --project-name wika_live app
 
           cp main.dart app/lib/main.dart
           cp google-services.json app/android/app/google-services.json
 
-      - name: Configure Firebase
+      - name: Configure Firebase Google Services
         run: |
           set -e
           cd app
@@ -36,11 +35,11 @@ jobs:
           settings = Path("android/settings.gradle.kts")
           text = settings.read_text()
 
-          if 'com.google.gms.google-services' not in text:
+          if 'id("com.google.gms.google-services")' not in text:
               text = text.replace(
                   'plugins {',
                   '''plugins {
-              id("com.google.gms.google-services") version "4.4.3" apply false''',
+              id("com.google.gms.google-services") version "4.5.0" apply false''',
                   1
               )
               settings.write_text(text)
@@ -48,7 +47,7 @@ jobs:
           build = Path("android/app/build.gradle.kts")
           text = build.read_text()
 
-          if 'com.google.gms.google-services' not in text:
+          if 'id("com.google.gms.google-services")' not in text:
               text = text.replace(
                   'plugins {',
                   '''plugins {
@@ -56,7 +55,18 @@ jobs:
                   1
               )
               build.write_text(text)
+
+          print("===== settings.gradle.kts =====")
+          print(settings.read_text())
+
+          print("===== app/build.gradle.kts =====")
+          print(build.read_text())
           PY
+
+          echo "===== CHECK GOOGLE SERVICES JSON ====="
+          test -f android/app/google-services.json
+
+          echo "google-services.json FOUND"
 
       - name: Get packages
         run: |
@@ -70,33 +80,40 @@ jobs:
 
           flutter pub get
 
-      - name: Verify Firebase config
+      - name: Verify Firebase JSON
         run: |
           set -e
 
-          if [ ! -f "app/android/app/google-services.json" ]; then
-            echo "ERROR: google-services.json not found."
-            exit 1
-          fi
+          echo "===== FIREBASE JSON CHECK ====="
 
-          echo "Firebase config found."
+          python3 - <<'PY'
+          import json
 
-          echo "Checking package name:"
-          grep -o '"package_name": "[^"]*"' app/android/app/google-services.json || true
+          with open("app/android/app/google-services.json") as f:
+              data = json.load(f)
 
-          echo "Checking current EC SHA:"
-          grep -o 'ece13bb4bbc4621151e30c03051e35f218862aac' \
-            app/android/app/google-services.json || true
+          print("Project ID:", data["project_info"]["project_id"])
+          print("Project Number:", data["project_info"]["project_number"])
 
-          echo "Checking Web OAuth client:"
-          grep -o '3472205178-9u0i8qco4otu0qgmm6e9gabh4st49j1r.apps.googleusercontent.com' \
-            app/android/app/google-services.json || true
+          for client in data["client"]:
+              package = client["client_info"]["android_client_info"]["package_name"]
+
+              if package == "com.example.wika_live":
+                  print("PACKAGE: com.example.wika_live")
+
+                  for oauth in client.get("oauth_client", []):
+                      print(
+                          "OAuth:",
+                          oauth.get("client_type"),
+                          oauth.get("client_id"),
+                          oauth.get("android_info", {}).get("certificate_hash")
+                      )
+          PY
 
       - name: Check Flutter project
         run: |
           set -e
           cd app
-
           flutter analyze || true
 
       - name: Build Release APK
@@ -109,37 +126,59 @@ jobs:
 
           flutter build apk --release
 
-      - name: Verify generated Google Services resources
+      - name: VERIFY FIREBASE GENERATED RESOURCES
         run: |
           set -e
 
           echo "======================================"
-          echo "GENERATED FIREBASE CONFIG"
+          echo "FIREBASE GENERATED RESOURCES"
           echo "======================================"
 
-          FILE="app/build/app/generated/res/google-services/release/values/values.xml"
+          echo "Searching for google-services generated files..."
 
-          if [ -f "$FILE" ]; then
-            cat "$FILE"
-          else
-            echo "First path not found. Searching..."
-            find app/build -path "*google-services*values.xml" -print -exec cat {} \;
-          fi
+          find app/build -type f \
+            -path "*google-services*" \
+            -print
 
-      - name: Show APK information
+          echo "======================================"
+          echo "Searching values.xml..."
+          echo "======================================"
+
+          find app/build -type f \
+            -name "values.xml" \
+            -path "*google-services*" \
+            -exec sh -c 'echo "----- $1 -----"; cat "$1"' _ {} \;
+
+          echo "======================================"
+          echo "Checking default_web_client_id..."
+          echo "======================================"
+
+          grep -R \
+            "default_web_client_id" \
+            app/build \
+            2>/dev/null || true
+
+          echo "======================================"
+          echo "Checking google_app_id..."
+          echo "======================================"
+
+          grep -R \
+            "google_app_id" \
+            app/build \
+            2>/dev/null || true
+
+      - name: Verify APK
         run: |
           set -e
 
           APK="app/build/app/outputs/flutter-apk/app-release.apk"
 
-          if [ ! -f "$APK" ]; then
-            echo "ERROR: APK was not created."
-            exit 1
-          fi
+          test -f "$APK"
 
           echo "======================================"
           echo "WikaLive APK BUILD SUCCESSFUL"
           echo "======================================"
+
           ls -lh "$APK"
 
       - name: Get APK SHA fingerprints
@@ -153,17 +192,13 @@ jobs:
             | sort -V \
             | tail -1)
 
-          if [ -n "$APKSIGNER" ]; then
-            echo "======================================"
-            echo "APK SHA FINGERPRINTS"
-            echo "======================================"
+          echo "======================================"
+          echo "APK SHA FINGERPRINTS"
+          echo "======================================"
 
-            "$APKSIGNER" verify \
-              --print-certs \
-              "$APK" || true
-          else
-            echo "apksigner not found."
-          fi
+          "$APKSIGNER" verify \
+            --print-certs \
+            "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
