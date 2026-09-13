@@ -33,7 +33,6 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          # Configure android/settings.gradle.kts
           settings = Path("android/settings.gradle.kts")
           text = settings.read_text()
 
@@ -46,7 +45,6 @@ jobs:
               )
               settings.write_text(text)
 
-          # Configure android/app/build.gradle.kts
           build = Path("android/app/build.gradle.kts")
           text = build.read_text()
 
@@ -81,7 +79,18 @@ jobs:
             exit 1
           fi
 
-          echo "Firebase config found successfully."
+          echo "Firebase config found."
+
+          echo "Checking package name:"
+          grep -o '"package_name": "[^"]*"' app/android/app/google-services.json || true
+
+          echo "Checking current EC SHA:"
+          grep -o 'ece13bb4bbc4621151e30c03051e35f218862aac' \
+            app/android/app/google-services.json || true
+
+          echo "Checking Web OAuth client:"
+          grep -o '3472205178-9u0i8qco4otu0qgmm6e9gabh4st49j1r.apps.googleusercontent.com' \
+            app/android/app/google-services.json || true
 
       - name: Check Flutter project
         run: |
@@ -99,6 +108,23 @@ jobs:
           flutter pub get
 
           flutter build apk --release
+
+      - name: Verify generated Google Services resources
+        run: |
+          set -e
+
+          echo "======================================"
+          echo "GENERATED FIREBASE CONFIG"
+          echo "======================================"
+
+          FILE="app/build/app/generated/res/google-services/release/values/values.xml"
+
+          if [ -f "$FILE" ]; then
+            cat "$FILE"
+          else
+            echo "First path not found. Searching..."
+            find app/build -path "*google-services*values.xml" -print -exec cat {} \;
+          fi
 
       - name: Show APK information
         run: |
