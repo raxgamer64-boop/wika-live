@@ -115,7 +115,10 @@ jobs:
           set -e
           cd app
           flutter analyze || true
-
+      - name: Setup signing
+        run: |
+          set -e
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/android/app/upload-keystore.jks
       - name: Build Release APK
         run: |
           set -e
