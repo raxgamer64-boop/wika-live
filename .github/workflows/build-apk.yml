@@ -18,35 +18,43 @@ jobs:
 
       - name: Create Flutter project
         run: |
+          set -e
+
           flutter create --project-name wika_live app
+
           cp main.dart app/lib/main.dart
           cp google-services.json app/android/app/google-services.json
 
       - name: Configure Firebase
         run: |
+          set -e
           cd app
 
           python3 - <<'PY'
           from pathlib import Path
 
+          # Configure android/settings.gradle.kts
           settings = Path("android/settings.gradle.kts")
           text = settings.read_text()
 
           if 'com.google.gms.google-services' not in text:
               text = text.replace(
                   'plugins {',
-                  'plugins {\n    id("com.google.gms.google-services") version "4.4.3" apply false',
+                  '''plugins {
+              id("com.google.gms.google-services") version "4.4.3" apply false''',
                   1
               )
               settings.write_text(text)
 
+          # Configure android/app/build.gradle.kts
           build = Path("android/app/build.gradle.kts")
           text = build.read_text()
 
           if 'com.google.gms.google-services' not in text:
               text = text.replace(
                   'plugins {',
-                  'plugins {\n    id("com.google.gms.google-services")',
+                  '''plugins {
+              id("com.google.gms.google-services")''',
                   1
               )
               build.write_text(text)
@@ -54,181 +62,86 @@ jobs:
 
       - name: Get packages
         run: |
+          set -e
           cd app
+
           flutter pub add firebase_core
           flutter pub add firebase_auth
           flutter pub add cloud_firestore
           flutter pub add google_sign_in:6.3.0
+
           flutter pub get
 
       - name: Verify Firebase config
         run: |
-          test -f app/android/app/google-services.json
-          echo "Firebase config found."
+          set -e
 
-      - name: Setup signing
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          if [ ! -f "app/android/app/google-services.json" ]; then
+            echo "ERROR: google-services.json not found."
+            exit 1
+          fi
+
+          echo "Firebase config found successfully."
+
+      - name: Check Flutter project
+        run: |
+          set -e
+          cd app
+
+          flutter analyze || true
+
+      - name: Build Release APK
+        run: |
+          set -e
+          cd app
+
+          flutter clean
+          flutter pub get
+
+          flutter build apk --release
+
+      - name: Show APK information
         run: |
           set -e
 
-          echo "Creating keystore file..."
+          APK="app/build/app/outputs/flutter-apk/app-release.apk"
 
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "ERROR: KEYSTORE_BASE64 secret is empty."
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK was not created."
             exit 1
           fi
 
-          if [ -z "$KEYSTORE_PASSWORD" ]; then
-            echo "ERROR: KEYSTORE_PASSWORD secret is empty."
-            exit 1
-          fi
+          echo "======================================"
+          echo "WikaLive APK BUILD SUCCESSFUL"
+          echo "======================================"
+          ls -lh "$APK"
 
-          if [ -z "$KEY_ALIAS" ]; then
-            echo "ERROR: KEY_ALIAS secret is empty."
-            exit 1
-          fi
+      - name: Get APK SHA fingerprints
+        run: |
+          set -e
 
-          echo "$KEYSTORE_BASE64" | base64 --decode > app/android/app/upload-keystore.jks
+          APK="app/build/app/outputs/flutter-apk/app-release.apk"
 
-          if [ ! -s app/android/app/upload-keystore.jks ]; then
-            echo "ERROR: Keystore file was not created correctly."
-            exit 1
-          fi
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" \
+            -name apksigner \
+            | sort -V \
+            | tail -1)
 
-          echo "Detecting keystore type..."
+          if [ -n "$APKSIGNER" ]; then
+            echo "======================================"
+            echo "APK SHA FINGERPRINTS"
+            echo "======================================"
 
-          KEYSTORE_TYPE=""
-
-          if keytool -list \
-              -keystore app/android/app/upload-keystore.jks \
-              -storetype JKS \
-              -storepass "$KEYSTORE_PASSWORD" >/tmp/jks_check.txt 2>&1; then
-            KEYSTORE_TYPE="JKS"
-          elif keytool -list \
-              -keystore app/android/app/upload-keystore.jks \
-              -storetype PKCS12 \
-              -storepass "$KEYSTORE_PASSWORD" >/tmp/pkcs12_check.txt 2>&1; then
-            KEYSTORE_TYPE="PKCS12"
+            "$APKSIGNER" verify \
+              --print-certs \
+              "$APK" || true
           else
-            echo "ERROR: Could not open the keystore."
-            echo "The keystore password may be incorrect, the keystore may be corrupted, or KEYSTORE_BASE64 may be incorrect."
-            echo ""
-            echo "JKS check:"
-            cat /tmp/jks_check.txt || true
-            echo ""
-            echo "PKCS12 check:"
-            cat /tmp/pkcs12_check.txt || true
-            exit 1
+            echo "apksigner not found."
           fi
-
-          echo "Detected keystore type: $KEYSTORE_TYPE"
-
-          echo "Checking key alias..."
-
-          if ! keytool -list \
-              -keystore app/android/app/upload-keystore.jks \
-              -storetype "$KEYSTORE_TYPE" \
-              -storepass "$KEYSTORE_PASSWORD" \
-              -alias "$KEY_ALIAS" >/tmp/alias_check.txt 2>&1; then
-            echo "ERROR: KEY_ALIAS was not found or could not be opened."
-            echo ""
-            echo "Available keystore entries:"
-            keytool -list \
-              -keystore app/android/app/upload-keystore.jks \
-              -storetype "$KEYSTORE_TYPE" \
-              -storepass "$KEYSTORE_PASSWORD" || true
-            exit 1
-          fi
-
-          echo "Keystore and alias verified successfully."
-
-          cat > app/android/key.properties <<EOF
-          storePassword=$KEYSTORE_PASSWORD
-          keyPassword=$KEYSTORE_PASSWORD
-          keyAlias=$KEY_ALIAS
-          storeFile=upload-keystore.jks
-          storeType=$KEYSTORE_TYPE
-          EOF
-
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path("app/android/app/build.gradle.kts")
-          text = p.read_text()
-
-          imports = """import java.util.Properties
-          import java.io.FileInputStream
-
-          """
-
-          if "import java.util.Properties" not in text:
-              text = imports + text
-
-          signing_code = """
-          val keyPropertiesFile = rootProject.file("key.properties")
-          val keyProperties = Properties()
-
-          if (keyPropertiesFile.exists()) {
-              keyProperties.load(FileInputStream(keyPropertiesFile))
-          }
-          """
-
-          if "keyPropertiesFile" not in text:
-              text = text.replace(
-                  "android {",
-                  signing_code + "\nandroid {",
-                  1
-              )
-
-          signing_config = """
-                  create("release") {
-                      keyAlias = keyProperties["keyAlias"] as String
-                      keyPassword = keyProperties["keyPassword"] as String
-                      storeFile = file(keyProperties["storeFile"] as String)
-                      storePassword = keyProperties["storePassword"] as String
-                      storeType = keyProperties["storeType"] as String
-                  }
-          """
-
-          if 'create("release")' not in text:
-              text = text.replace(
-                  "    buildTypes {",
-                  "    signingConfigs {\n" +
-                  signing_config +
-                  "    }\n\n    buildTypes {",
-                  1
-              )
-
-          text = text.replace(
-              'signingConfig = signingConfigs.getByName("debug")',
-              'signingConfig = signingConfigs.getByName("release")'
-          )
-
-          p.write_text(text)
-          PY
-
-      - name: Build signed APK
-        run: |
-          cd app
-          flutter clean
-          flutter pub get
-          flutter build apk --release
-
-      - name: Get SHA fingerprints
-        run: |
-          echo "=== WikaLive Release APK SHA fingerprints ==="
-
-          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
-
-          "$APKSIGNER" verify \
-            --print-certs \
-            app/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: WikaLive-APK-${{ github.run_number }}
           path: app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
