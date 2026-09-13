@@ -83,7 +83,10 @@ class _AuthPageState extends State<AuthPage> {
   Future<void> signInWithGoogle() async {
     setState(() => loading = true);
     try {
-      final googleUser = await GoogleSignIn().signIn();
+      final googleUser = await GoogleSignIn(
+  serverClientId:
+      '3472205178-9u0i8qco4otu0qgmm6e9gabh4st49j1r.apps.googleusercontent.com',
+).signIn();
       if (googleUser == null) {
         if (mounted) setState(() => loading = false);
         return;
