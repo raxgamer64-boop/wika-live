@@ -37,6 +37,17 @@ jobs:
           cp main.dart app/lib/main.dart
           cp google-services.json app/android/app/google-services.json
 
+          # Game artwork folder
+          mkdir -p app/assets/games
+
+          # Copy game artwork from repository
+          if [ -d assets/games ]; then
+            cp -r assets/games/. app/assets/games/
+            echo "Game artwork copied successfully."
+          else
+            echo "WARNING: assets/games folder not found."
+          fi
+
           echo "======================================"
           echo "FLUTTER PROJECT CREATED"
           echo "======================================"
@@ -46,6 +57,16 @@ jobs:
 
           echo "main.dart FOUND"
           echo "google-services.json FOUND"
+
+          echo "======================================"
+          echo "GAME ASSETS"
+          echo "======================================"
+
+          if [ -d app/assets/games ]; then
+            find app/assets/games -maxdepth 1 -type f | sort
+          else
+            echo "No game assets found."
+          fi
 
 
       # ==========================================
@@ -70,7 +91,7 @@ jobs:
                   "plugins {",
                   """plugins {
               id("com.google.gms.google-services") version "4.4.3" apply false
-          """,
+              """,
                   1
               )
 
@@ -83,7 +104,7 @@ jobs:
                   "plugins {",
                   """plugins {
               id("com.google.gms.google-services")
-          """,
+              """,
                   1
               )
 
@@ -112,6 +133,37 @@ jobs:
           flutter pub add firebase_storage
           flutter pub add image_picker
           flutter pub add google_sign_in:6.3.0
+
+          # ======================================
+          # REGISTER GAME ARTWORK
+          # ======================================
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          pubspec = Path("pubspec.yaml")
+          text = pubspec.read_text()
+
+          if "    - assets/games/" not in text:
+
+              if "flutter:\n" not in text:
+                  raise SystemExit(
+                      "ERROR: flutter section not found in pubspec.yaml"
+                  )
+
+              text = text.replace(
+                  "flutter:\n",
+                  """flutter:
+            assets:
+              - assets/games/
+          """,
+                  1
+              )
+
+              pubspec.write_text(text)
+
+          print("Game artwork registered in pubspec.yaml.")
+          PY
 
           flutter pub get
 
@@ -159,7 +211,36 @@ jobs:
 
 
       # ==========================================
-      # 7. CHECK FLUTTER PROJECT
+      # 7. VERIFY GAME ASSETS
+      # ==========================================
+      - name: Verify Game Assets
+        run: |
+          set -e
+
+          cd app
+
+          echo "======================================"
+          echo "CHECKING GAME ASSETS"
+          echo "======================================"
+
+          if [ -d assets/games ]; then
+            COUNT=$(find assets/games -type f | wc -l)
+
+            echo "Game asset count: $COUNT"
+
+            if [ "$COUNT" -gt 0 ]; then
+              find assets/games -type f | sort
+              echo "Game assets FOUND."
+            else
+              echo "WARNING: assets/games is empty."
+            fi
+          else
+            echo "WARNING: assets/games folder does not exist."
+          fi
+
+
+      # ==========================================
+      # 8. CHECK FLUTTER PROJECT
       # ==========================================
       - name: Check Flutter project
         run: |
@@ -171,7 +252,7 @@ jobs:
 
 
       # ==========================================
-      # 8. BUILD RELEASE APK
+      # 9. BUILD RELEASE APK
       # ==========================================
       - name: Build Release APK
         run: |
@@ -194,7 +275,7 @@ jobs:
 
 
       # ==========================================
-      # 9. VERIFY APK
+      # 10. VERIFY APK
       # ==========================================
       - name: Verify APK
         run: |
@@ -212,7 +293,7 @@ jobs:
 
 
       # ==========================================
-      # 10. UPLOAD APK
+      # 11. UPLOAD APK
       # ==========================================
       - name: Upload APK
         uses: actions/upload-artifact@v4
