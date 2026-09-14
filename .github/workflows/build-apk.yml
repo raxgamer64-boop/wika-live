@@ -20,80 +20,25 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Flutter version
-        run: |
-          flutter --version
-          dart --version
-
       - name: Create Flutter project
         run: |
-          rm -rf wika_build
-          flutter create \
-            --org com.example \
-            --project-name wika_live \
-            wika_build
+          set -e
+          rm -rf app
+          flutter create --project-name wika_live app
 
-      - name: Copy WikaLive files
+          cp main.dart app/lib/main.dart
+
+          mkdir -p app/android/app
+          cp google-services.json app/android/app/google-services.json
+
+          test -f app/lib/main.dart
+          test -f app/android/app/google-services.json
+
+      - name: Configure Firebase
+        working-directory: app
         run: |
-          cp main.dart wika_build/lib/main.dart
+          set -e
 
-          mkdir -p wika_build/android/app
-
-          if [ -f google-services.json ]; then
-            cp google-services.json wika_build/android/app/google-services.json
-          else
-            echo "ERROR: google-services.json not found"
-            exit 1
-          fi
-
-          if [ -d assets/games ]; then
-            mkdir -p wika_build/assets/games
-            cp -r assets/games/. wika_build/assets/games/
-          fi
-
-      - name: Create pubspec.yaml
-        working-directory: wika_build
-        run: |
-          cat > pubspec.yaml <<'EOF'
-          name: wika_live
-          description: Wika Live App
-          publish_to: "none"
-
-          version: 1.0.0+1
-
-          environment:
-            sdk: ">=3.5.0 <4.0.0"
-
-          dependencies:
-            flutter:
-              sdk: flutter
-            cupertino_icons: ^1.0.8
-            firebase_core: ^4.15.0
-            firebase_auth: ^6.7.0
-            cloud_firestore: ^6.10.0
-            firebase_storage: ^13.6.0
-            image_picker: ^1.2.3
-            google_sign_in: ^7.2.0
-
-          dev_dependencies:
-            flutter_test:
-              sdk: flutter
-            flutter_lints: ^5.0.0
-
-          flutter:
-            uses-material-design: true
-            assets:
-              - assets/games/
-          EOF
-
-          echo "======================================"
-          echo "PUBSPEC.YAML"
-          echo "======================================"
-          cat pubspec.yaml
-
-      - name: Configure Google Services
-        working-directory: wika_build
-        run: |
           python3 - <<'PY'
           from pathlib import Path
 
@@ -103,49 +48,124 @@ jobs:
           if "com.google.gms.google-services" not in text:
               text = text.replace(
                   "plugins {",
-                  'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false',
-                  1
+                  'plugins {\n    id("com.google.gms.google-services") version "4.4.3" apply false',
+                  1,
               )
               settings.write_text(text)
 
-          app = Path("android/app/build.gradle.kts")
-          text = app.read_text()
+          build = Path("android/app/build.gradle.kts")
+          text = build.read_text()
 
           if 'id("com.google.gms.google-services")' not in text:
               text = text.replace(
                   "plugins {",
                   'plugins {\n    id("com.google.gms.google-services")',
-                  1
+                  1,
               )
-              app.write_text(text)
+              build.write_text(text)
           PY
 
           test -f android/app/google-services.json
 
       - name: Get packages
-        working-directory: wika_build
+        working-directory: app
         run: |
+          set -e
+
+          flutter pub add firebase_core
+          flutter pub add firebase_auth
+          flutter pub add cloud_firestore
+          flutter pub add firebase_storage
+          flutter pub add image_picker
+          flutter pub add google_sign_in
+
           flutter pub get
 
+      - name: Add game assets
+        working-directory: app
+        run: |
+          set -e
+
+          if [ -d ../assets/games ]; then
+            mkdir -p assets/games
+            cp -r ../assets/games/. assets/games/
+
+            sed -i '/^  uses-material-design: true$/a\
+            assets:\
+              - assets/games/' pubspec.yaml
+          fi
+
+          echo "======================================"
+          echo "FINAL PUBSPEC"
+          echo "======================================"
+          cat pubspec.yaml
+
+          flutter pub get
+
+      - name: Verify Firebase JSON
+        run: |
+          set -e
+
+          python3 - <<'PY'
+          import json
+
+          path = "app/android/app/google-services.json"
+
+          with open(path, "r") as f:
+              data = json.load(f)
+
+          found = False
+
+          for client in data.get("client", []):
+              package = (
+                  client.get("client_info", {})
+                  .get("android_client_info", {})
+                  .get("package_name")
+              )
+
+              if package == "com.example.wika_live":
+                  found = True
+                  break
+
+          if not found:
+              raise SystemExit(
+                  "ERROR: com.example.wika_live not found in google-services.json"
+              )
+
+          print("Firebase JSON verification successful.")
+          PY
+
       - name: Analyze
-        working-directory: wika_build
+        working-directory: app
         run: |
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build APK
-        working-directory: wika_build
+      - name: Build Release APK
+        working-directory: app
         run: |
+          set -e
+
+          flutter clean
+          flutter pub get
           flutter build apk --release
 
       - name: Verify APK
-        working-directory: wika_build
         run: |
-          test -f build/app/outputs/flutter-apk/app-release.apk
-          ls -lh build/app/outputs/flutter-apk/app-release.apk
+          set -e
+
+          APK="app/build/app/outputs/flutter-apk/app-release.apk"
+
+          test -f "$APK"
+
+          echo "======================================"
+          echo "WIKALIVE APK BUILD SUCCESSFUL"
+          echo "======================================"
+
+          ls -lh "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: WikaLive-release-apk
-          path: wika_build/build/app/outputs/flutter-apk/app-release.apk
+          name: WikaLive-APK
+          path: app/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
