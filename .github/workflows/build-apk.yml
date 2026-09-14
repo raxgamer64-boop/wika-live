@@ -47,125 +47,21 @@ jobs:
       - name: Configure Google Services
         working-directory: wika_build
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
+          python3 -c "from pathlib import Path; p=Path('android/settings.gradle.kts'); s=p.read_text(); s=s.replace('plugins {', 'plugins {\n    id(\"com.google.gms.google-services\") version \"4.4.2\" apply false', 1) if 'com.google.gms.google-services' not in s else s; p.write_text(s)"
 
-          p = Path("android/settings.gradle.kts")
-          if p.exists():
-              text = p.read_text()
+          python3 -c "from pathlib import Path; p=Path('android/app/build.gradle.kts'); s=p.read_text(); s=s.replace('plugins {', 'plugins {\n    id(\"com.google.gms.google-services\")', 1) if 'id(\"com.google.gms.google-services\")' not in s else s; p.write_text(s)"
 
-              if "com.google.gms.google-services" not in text:
-                  marker = 'plugins {\n'
-                  if marker in text:
-                      text = text.replace(
-                          marker,
-                          'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false\n',
-                          1
-                      )
-                      p.write_text(text)
-
-          p = Path("android/app/build.gradle.kts")
-          if p.exists():
-              text = p.read_text()
-
-              if 'com.google.gms.google-services' not in text:
-                  text += '\nplugins {\n    id("com.google.gms.google-services")\n}\n'
-                  p.write_text(text)
-          PY
-
-      - name: Configure dependencies
+      - name: Configure pubspec
         working-directory: wika_build
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
+          python3 -c "from pathlib import Path; p=Path('pubspec.yaml'); s=p.read_text(); start=s.index('dependencies:'); end=s.index('\nflutter:', start); deps=['dependencies:','  flutter:','    sdk: flutter','  cupertino_icons: ^1.0.8','  firebase_core: ^4.15.0','  firebase_auth: ^6.7.0','  cloud_firestore: ^6.10.0','  firebase_storage: ^13.6.0','  image_picker: ^1.2.3','  google_sign_in: ^7.2.0']; s=s[:start]+'\\n'.join(deps)+s[end:]; p.write_text(s)"
 
-          p = Path("pubspec.yaml")
-          text = p.read_text()
-
-          marker = "dependencies:\n"
-
-          if marker not in text:
-              raise SystemExit("ERROR: dependencies section not found")
-
-          before, after = text.split(marker, 1)
-
-          # Remove the existing dependency block up to flutter:
-          if "\nflutter:" in after:
-              _, flutter_section = after.split("\nflutter:", 1)
-              flutter_section = "\nflutter:" + flutter_section
-          else:
-              flutter_section = "\nflutter:\n  uses-material-design: true\n"
-
-          dependencies = """dependencies:
-  flutter:
-    sdk: flutter
-  cupertino_icons: ^1.0.8
-  firebase_core: ^4.15.0
-  firebase_auth: ^6.7.0
-  cloud_firestore: ^6.10.0
-  firebase_storage: ^13.6.0
-  image_picker: ^1.2.3
-  google_sign_in: ^7.2.0
-"""
-
-          # Rebuild pubspec cleanly.
-          p.write_text(
-              before.rstrip()
-              + "\n\n"
-              + dependencies
-              + flutter_section
-          )
-          PY
-
-      - name: Configure assets
+      - name: Configure game assets
         working-directory: wika_build
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
+          python3 -c "from pathlib import Path; p=Path('pubspec.yaml'); s=p.read_text(); s=s.replace('flutter:\n', 'flutter:\n  assets:\n    - assets/games/\n', 1); p.write_text(s)"
 
-          p = Path("pubspec.yaml")
-          text = p.read_text()
-
-          # Remove any previously inserted assets section.
-          lines = text.splitlines()
-
-          cleaned = []
-          i = 0
-
-          while i < len(lines):
-              line = lines[i]
-
-              if line.strip() == "assets:" and line.startswith("  "):
-                  i += 1
-
-                  while i < len(lines):
-                      next_line = lines[i]
-
-                      if next_line.startswith("    - "):
-                          i += 1
-                      else:
-                          break
-
-                  continue
-
-              cleaned.append(line)
-              i += 1
-
-          text = "\n".join(cleaned).rstrip() + "\n"
-
-          if "flutter:\n" not in text:
-              raise SystemExit("ERROR: flutter section not found")
-
-          text = text.replace(
-              "flutter:\n",
-              "flutter:\n  assets:\n    - assets/games/\n",
-              1
-          )
-
-          p.write_text(text)
-          PY
-
-      - name: Verify pubspec.yaml
+      - name: Show final pubspec
         working-directory: wika_build
         run: |
           echo "======================================"
@@ -173,9 +69,9 @@ jobs:
           echo "======================================"
           cat pubspec.yaml
 
-          echo "======================================"
-          echo "PUBSPEC CHECK"
-          echo "======================================"
+      - name: Get packages
+        working-directory: wika_build
+        run: |
           flutter pub get
 
       - name: Analyze Flutter project
