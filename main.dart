@@ -1227,7 +1227,7 @@ class MeScreen extends StatelessWidget {
       case 'Real Person': return const FeaturePage(title: 'Real Person Detection', icon: '🕵️', items: ['Verification', 'Verification status', 'Safety information']);
       case 'Help & Feedback': return const FeaturePage(title: 'Help & Feedback', icon: '❓', items: ['Common questions', 'Report a problem', 'Send feedback', 'Safety help']);
       case 'Customer Service': return const FeaturePage(title: 'Customer Service', icon: '🎧', items: ['Online support', 'Account help', 'Payment support', 'Live support']);
-      default: return FeaturePage(title: label, icon: '✨', items: const ['Open $label', 'Information', 'Help']);
+      default: return FeaturePage(title: label, icon: '✨', items: ['Open $label', 'Information', 'Help']);
     }
   }
 
