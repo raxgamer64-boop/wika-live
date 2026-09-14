@@ -412,10 +412,4 @@ jobs:
       # ==========================================
       # 15. GET FINAL APK SHA
       # ==========================================
-      - name: Get APK SHA fingerprints
-        run: |
-          set -e
-
-          APK="app/build/app/outputs/flutter-apk/app-release.apk"
-
-          APKS
+  
