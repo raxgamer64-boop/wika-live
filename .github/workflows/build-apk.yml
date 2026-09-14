@@ -63,9 +63,6 @@ jobs:
           settings = Path("android/settings.gradle.kts")
           build = Path("android/app/build.gradle.kts")
 
-          # --------------------------------------
-          # Configure Google Services in settings
-          # --------------------------------------
           text = settings.read_text()
 
           if "com.google.gms.google-services" not in text:
@@ -79,9 +76,6 @@ jobs:
 
           settings.write_text(text)
 
-          # --------------------------------------
-          # Configure Google Services in app
-          # --------------------------------------
           text = build.read_text()
 
           if 'id("com.google.gms.google-services")' not in text:
@@ -144,6 +138,7 @@ jobs:
           found = False
 
           for client in data.get("client", []):
+
               package = (
                   client.get("client_info", {})
                   .get("android_client_info", {})
