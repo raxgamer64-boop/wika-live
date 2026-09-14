@@ -20,7 +20,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Show Flutter version
+      - name: Flutter version
         run: |
           flutter --version
           dart --version
@@ -28,15 +28,22 @@ jobs:
       - name: Create Flutter project
         run: |
           rm -rf wika_build
-          flutter create --org com.example --project-name wika_live wika_build
+          flutter create \
+            --org com.example \
+            --project-name wika_live \
+            wika_build
 
-      - name: Copy application files
+      - name: Copy WikaLive files
         run: |
           cp main.dart wika_build/lib/main.dart
 
+          mkdir -p wika_build/android/app
+
           if [ -f google-services.json ]; then
-            mkdir -p wika_build/android/app
             cp google-services.json wika_build/android/app/google-services.json
+          else
+            echo "ERROR: google-services.json not found"
+            exit 1
           fi
 
           if [ -d assets/games ]; then
@@ -44,42 +51,88 @@ jobs:
             cp -r assets/games/. wika_build/assets/games/
           fi
 
+      - name: Create pubspec.yaml
+        working-directory: wika_build
+        run: |
+          cat > pubspec.yaml <<'EOF'
+          name: wika_live
+          description: Wika Live App
+          publish_to: "none"
+
+          version: 1.0.0+1
+
+          environment:
+            sdk: ">=3.5.0 <4.0.0"
+
+          dependencies:
+            flutter:
+              sdk: flutter
+            cupertino_icons: ^1.0.8
+            firebase_core: ^4.15.0
+            firebase_auth: ^6.7.0
+            cloud_firestore: ^6.10.0
+            firebase_storage: ^13.6.0
+            image_picker: ^1.2.3
+            google_sign_in: ^7.2.0
+
+          dev_dependencies:
+            flutter_test:
+              sdk: flutter
+            flutter_lints: ^5.0.0
+
+          flutter:
+            uses-material-design: true
+            assets:
+              - assets/games/
+          EOF
+
+          echo "======================================"
+          echo "PUBSPEC.YAML"
+          echo "======================================"
+          cat pubspec.yaml
+
       - name: Configure Google Services
         working-directory: wika_build
         run: |
-          python3 -c "from pathlib import Path; p=Path('android/settings.gradle.kts'); s=p.read_text(); s=s.replace('plugins {', 'plugins {\n    id(\"com.google.gms.google-services\") version \"4.4.2\" apply false', 1) if 'com.google.gms.google-services' not in s else s; p.write_text(s)"
+          python3 - <<'PY'
+          from pathlib import Path
 
-          python3 -c "from pathlib import Path; p=Path('android/app/build.gradle.kts'); s=p.read_text(); s=s.replace('plugins {', 'plugins {\n    id(\"com.google.gms.google-services\")', 1) if 'id(\"com.google.gms.google-services\")' not in s else s; p.write_text(s)"
+          settings = Path("android/settings.gradle.kts")
+          text = settings.read_text()
 
-      - name: Configure pubspec
-        working-directory: wika_build
-        run: |
-          python3 -c "from pathlib import Path; p=Path('pubspec.yaml'); s=p.read_text(); start=s.index('dependencies:'); end=s.index('\nflutter:', start); deps=['dependencies:','  flutter:','    sdk: flutter','  cupertino_icons: ^1.0.8','  firebase_core: ^4.15.0','  firebase_auth: ^6.7.0','  cloud_firestore: ^6.10.0','  firebase_storage: ^13.6.0','  image_picker: ^1.2.3','  google_sign_in: ^7.2.0']; s=s[:start]+'\\n'.join(deps)+s[end:]; p.write_text(s)"
+          if "com.google.gms.google-services" not in text:
+              text = text.replace(
+                  "plugins {",
+                  'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false',
+                  1
+              )
+              settings.write_text(text)
 
-      - name: Configure game assets
-        working-directory: wika_build
-        run: |
-          python3 -c "from pathlib import Path; p=Path('pubspec.yaml'); s=p.read_text(); s=s.replace('flutter:\n', 'flutter:\n  assets:\n    - assets/games/\n', 1); p.write_text(s)"
+          app = Path("android/app/build.gradle.kts")
+          text = app.read_text()
 
-      - name: Show final pubspec
-        working-directory: wika_build
-        run: |
-          echo "======================================"
-          echo "FINAL PUBSPEC.YAML"
-          echo "======================================"
-          cat pubspec.yaml
+          if 'id("com.google.gms.google-services")' not in text:
+              text = text.replace(
+                  "plugins {",
+                  'plugins {\n    id("com.google.gms.google-services")',
+                  1
+              )
+              app.write_text(text)
+          PY
+
+          test -f android/app/google-services.json
 
       - name: Get packages
         working-directory: wika_build
         run: |
           flutter pub get
 
-      - name: Analyze Flutter project
+      - name: Analyze
         working-directory: wika_build
         run: |
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build release APK
+      - name: Build APK
         working-directory: wika_build
         run: |
           flutter build apk --release
@@ -87,8 +140,8 @@ jobs:
       - name: Verify APK
         working-directory: wika_build
         run: |
-          ls -lh build/app/outputs/flutter-apk/app-release.apk
           test -f build/app/outputs/flutter-apk/app-release.apk
+          ls -lh build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
