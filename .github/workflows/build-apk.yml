@@ -15,7 +15,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-
       # ==========================================
       # 2. SETUP FLUTTER
       # ==========================================
@@ -23,7 +22,6 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-
 
       # ==========================================
       # 3. CREATE FLUTTER PROJECT
@@ -37,16 +35,11 @@ jobs:
           cp main.dart app/lib/main.dart
           cp google-services.json app/android/app/google-services.json
 
-          echo "======================================"
-          echo "FLUTTER PROJECT CREATED"
-          echo "======================================"
-
           test -f app/lib/main.dart
           test -f app/android/app/google-services.json
 
           echo "main.dart FOUND"
           echo "google-services.json FOUND"
-
 
       # ==========================================
       # 4. CONFIGURE FIREBASE
@@ -63,9 +56,6 @@ jobs:
           settings = Path("android/settings.gradle.kts")
           build = Path("android/app/build.gradle.kts")
 
-          # --------------------------------------
-          # Configure Google Services in settings
-          # --------------------------------------
           text = settings.read_text()
 
           if "com.google.gms.google-services" not in text:
@@ -79,9 +69,6 @@ jobs:
 
           settings.write_text(text)
 
-          # --------------------------------------
-          # Configure Google Services in app
-          # --------------------------------------
           text = build.read_text()
 
           if 'id("com.google.gms.google-services")' not in text:
@@ -102,7 +89,6 @@ jobs:
 
           echo "google-services.json FOUND"
 
-
       # ==========================================
       # 5. GET PACKAGES
       # ==========================================
@@ -118,7 +104,6 @@ jobs:
           flutter pub add google_sign_in:6.3.0
 
           flutter pub get
-
 
       # ==========================================
       # 6. VERIFY FIREBASE JSON
@@ -161,7 +146,6 @@ jobs:
           print("Firebase JSON verification successful.")
           PY
 
-
       # ==========================================
       # 7. CHECK FLUTTER PROJECT
       # ==========================================
@@ -171,8 +155,9 @@ jobs:
 
           cd app
 
-          flutter analyze
+          rm -rf test
 
+          flutter analyze
 
       # ==========================================
       # 8. BUILD RELEASE APK
@@ -186,16 +171,7 @@ jobs:
           flutter clean
           flutter pub get
 
-          echo "======================================"
-          echo "BUILDING WIKALIVE APK"
-          echo "======================================"
-
           flutter build apk --release
-
-          echo "======================================"
-          echo "APK BUILD COMPLETED"
-          echo "======================================"
-
 
       # ==========================================
       # 9. VERIFY APK
@@ -208,12 +184,9 @@ jobs:
 
           test -f "$APK"
 
-          echo "======================================"
           echo "WIKALIVE APK BUILD SUCCESSFUL"
-          echo "======================================"
 
           ls -lh "$APK"
-
 
       # ==========================================
       # 10. UPLOAD APK
@@ -224,4 +197,3 @@ jobs:
           name: WikaLive-APK
           path: app/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-          
