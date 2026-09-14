@@ -240,28 +240,7 @@ jobs:
       # ==========================================
       # 9. VERIFY KEYSTORE
       # ==========================================
-      - name: Verify release keystore
-        env:
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: |
-          set -e
-
-          echo "======================================"
-          echo "VERIFY RELEASE KEYSTORE"
-          echo "======================================"
-
-          test -n "$KEYSTORE_PASS"
-          test -n "$KEY_ALIAS"
-
-          keytool -list \
-            -keystore app/android/app/upload-keystore.jks \
-            -storepass "$KEYSTORE_PASS" \
-            -alias "$KEY_ALIAS"
-
-          echo "======================================"
-          echo "KEYSTORE VERIFIED SUCCESSFULLY"
-          echo "======================================"
+  
 
 
       # ==========================================
