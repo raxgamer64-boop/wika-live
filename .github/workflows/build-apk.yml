@@ -37,36 +37,21 @@ jobs:
           cp main.dart app/lib/main.dart
           cp google-services.json app/android/app/google-services.json
 
-          # Game artwork folder
+          # Game assets
           mkdir -p app/assets/games
 
-          # Copy game artwork from repository
           if [ -d assets/games ]; then
             cp -r assets/games/. app/assets/games/
-            echo "Game artwork copied successfully."
+            echo "Game assets copied."
           else
-            echo "WARNING: assets/games folder not found."
+            echo "No game assets folder found. Continuing."
           fi
-
-          echo "======================================"
-          echo "FLUTTER PROJECT CREATED"
-          echo "======================================"
 
           test -f app/lib/main.dart
           test -f app/android/app/google-services.json
 
           echo "main.dart FOUND"
           echo "google-services.json FOUND"
-
-          echo "======================================"
-          echo "GAME ASSETS"
-          echo "======================================"
-
-          if [ -d app/assets/games ]; then
-            find app/assets/games -maxdepth 1 -type f | sort
-          else
-            echo "No game assets found."
-          fi
 
 
       # ==========================================
@@ -110,16 +95,16 @@ jobs:
 
           build.write_text(text)
 
-          print("Firebase Google Services configured.")
+          print("Firebase configured.")
           PY
 
           test -f android/app/google-services.json
 
-          echo "google-services.json FOUND"
+          echo "Firebase configuration OK."
 
 
       # ==========================================
-      # 5. GET PACKAGES
+      # 5. ADD PACKAGES
       # ==========================================
       - name: Get packages
         run: |
@@ -132,44 +117,54 @@ jobs:
           flutter pub add cloud_firestore
           flutter pub add firebase_storage
           flutter pub add image_picker
-          flutter pub add google_sign_in:6.3.0
+          flutter pub add google_sign_in
 
-          # ======================================
-          # REGISTER GAME ARTWORK
-          # ======================================
+          echo "======================================"
+          echo "REGISTERING GAME ASSETS"
+          echo "======================================"
 
           python3 - <<'PY'
           from pathlib import Path
 
-          pubspec = Path("pubspec.yaml")
-          text = pubspec.read_text()
+          p = Path("pubspec.yaml")
+          text = p.read_text()
 
           if "    - assets/games/" not in text:
+              marker = "flutter:\n"
 
-              if "flutter:\n" not in text:
+              if marker not in text:
                   raise SystemExit(
                       "ERROR: flutter section not found in pubspec.yaml"
                   )
 
               text = text.replace(
-                  "flutter:\n",
-                  """flutter:
-            assets:
-              - assets/games/
-          """,
+                  marker,
+                  "flutter:\n  assets:\n    - assets/games/\n",
                   1
               )
 
-              pubspec.write_text(text)
+              p.write_text(text)
 
-          print("Game artwork registered in pubspec.yaml.")
+          print("assets/games registered.")
           PY
+
+          echo "======================================"
+          echo "PUBSPEC CHECK"
+          echo "======================================"
+
+          grep -n -A5 -B2 "flutter:" pubspec.yaml || true
+
+          echo "======================================"
+          echo "FLUTTER PUB GET"
+          echo "======================================"
 
           flutter pub get
 
+          echo "Packages installed successfully."
+
 
       # ==========================================
-      # 6. VERIFY FIREBASE JSON
+      # 6. VERIFY FIREBASE
       # ==========================================
       - name: Verify Firebase JSON
         run: |
@@ -220,27 +215,28 @@ jobs:
           cd app
 
           echo "======================================"
-          echo "CHECKING GAME ASSETS"
+          echo "GAME ASSETS"
           echo "======================================"
 
           if [ -d assets/games ]; then
+
             COUNT=$(find assets/games -type f | wc -l)
 
             echo "Game asset count: $COUNT"
 
             if [ "$COUNT" -gt 0 ]; then
               find assets/games -type f | sort
-              echo "Game assets FOUND."
             else
               echo "WARNING: assets/games is empty."
             fi
+
           else
-            echo "WARNING: assets/games folder does not exist."
+            echo "WARNING: assets/games does not exist."
           fi
 
 
       # ==========================================
-      # 8. CHECK FLUTTER PROJECT
+      # 8. FLUTTER ANALYZE
       # ==========================================
       - name: Check Flutter project
         run: |
@@ -248,11 +244,13 @@ jobs:
 
           cd app
 
-          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter analyze \
+            --no-fatal-infos \
+            --no-fatal-warnings
 
 
       # ==========================================
-      # 9. BUILD RELEASE APK
+      # 9. BUILD APK
       # ==========================================
       - name: Build Release APK
         run: |
@@ -283,7 +281,10 @@ jobs:
 
           APK="app/build/app/outputs/flutter-apk/app-release.apk"
 
-          test -f "$APK"
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK was not created."
+            exit 1
+          fi
 
           echo "======================================"
           echo "WIKALIVE APK BUILD SUCCESSFUL"
