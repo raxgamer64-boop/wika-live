@@ -32,19 +32,20 @@ jobs:
         run: |
           set -e
 
+          rm -rf app
+
           flutter create --project-name wika_live app
 
           cp main.dart app/lib/main.dart
           cp google-services.json app/android/app/google-services.json
 
-          # Game assets
           mkdir -p app/assets/games
 
           if [ -d assets/games ]; then
             cp -r assets/games/. app/assets/games/
             echo "Game assets copied."
           else
-            echo "No game assets folder found. Continuing."
+            echo "No game assets folder found."
           fi
 
           test -f app/lib/main.dart
@@ -95,72 +96,99 @@ jobs:
 
           build.write_text(text)
 
-          print("Firebase configured.")
+          print("Firebase Google Services configured.")
           PY
 
           test -f android/app/google-services.json
 
-          echo "Firebase configuration OK."
-
 
       # ==========================================
-      # 5. ADD PACKAGES
+      # 5. CONFIGURE DEPENDENCIES
       # ==========================================
-      - name: Get packages
+      - name: Configure Flutter dependencies
         run: |
           set -e
 
           cd app
 
-          flutter pub add firebase_core
-          flutter pub add firebase_auth
-          flutter pub add cloud_firestore
-          flutter pub add firebase_storage
-          flutter pub add image_picker
-          flutter pub add google_sign_in
-
-          echo "======================================"
-          echo "REGISTERING GAME ASSETS"
-          echo "======================================"
-
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           p = Path("pubspec.yaml")
           text = p.read_text()
 
-          if "    - assets/games/" not in text:
-              marker = "flutter:\n"
+          dependencies = """
+            firebase_core: ^4.15.0
+            firebase_auth: ^6.7.0
+            cloud_firestore: ^6.10.0
+            firebase_storage: ^13.6.0
+            image_picker: ^1.2.3
+            google_sign_in: ^7.2.0
+          """.rstrip()
 
-              if marker not in text:
+          # Remove any dependency lines that may already exist.
+          names = [
+              "firebase_core",
+              "firebase_auth",
+              "cloud_firestore",
+              "firebase_storage",
+              "image_picker",
+              "google_sign_in",
+          ]
+
+          for name in names:
+              text = re.sub(
+                  rf"(?m)^    {re.escape(name)}:.*\n",
+                  "",
+                  text
+              )
+
+          marker = "dependencies:\n"
+
+          if marker not in text:
+              raise SystemExit(
+                  "ERROR: dependencies section not found."
+              )
+
+          text = text.replace(
+              marker,
+              marker + dependencies + "\n",
+              1
+          )
+
+          # Register game artwork.
+          if "    - assets/games/" not in text:
+              flutter_marker = "flutter:\n"
+
+              if flutter_marker not in text:
                   raise SystemExit(
-                      "ERROR: flutter section not found in pubspec.yaml"
+                      "ERROR: flutter section not found."
                   )
 
               text = text.replace(
-                  marker,
+                  flutter_marker,
                   "flutter:\n  assets:\n    - assets/games/\n",
                   1
               )
 
-              p.write_text(text)
+          p.write_text(text)
 
-          print("assets/games registered.")
+          print("Dependencies configured.")
+          print("Game assets configured.")
           PY
 
           echo "======================================"
-          echo "PUBSPEC CHECK"
+          echo "PUBSPEC"
           echo "======================================"
 
-          grep -n -A5 -B2 "flutter:" pubspec.yaml || true
+          cat pubspec.yaml
 
           echo "======================================"
           echo "FLUTTER PUB GET"
           echo "======================================"
 
           flutter pub get
-
-          echo "Packages installed successfully."
 
 
       # ==========================================
@@ -185,7 +213,6 @@ jobs:
           found = False
 
           for client in data.get("client", []):
-
               package = (
                   client.get("client_info", {})
                   .get("android_client_info", {})
@@ -201,7 +228,7 @@ jobs:
                   "ERROR: com.example.wika_live not found in google-services.json"
               )
 
-          print("Firebase JSON verification successful.")
+          print("Firebase verification successful.")
           PY
 
 
@@ -219,24 +246,18 @@ jobs:
           echo "======================================"
 
           if [ -d assets/games ]; then
-
             COUNT=$(find assets/games -type f | wc -l)
 
             echo "Game asset count: $COUNT"
 
-            if [ "$COUNT" -gt 0 ]; then
-              find assets/games -type f | sort
-            else
-              echo "WARNING: assets/games is empty."
-            fi
-
+            find assets/games -type f | sort
           else
-            echo "WARNING: assets/games does not exist."
+            echo "No game assets found."
           fi
 
 
       # ==========================================
-      # 8. FLUTTER ANALYZE
+      # 8. CHECK FLUTTER PROJECT
       # ==========================================
       - name: Check Flutter project
         run: |
@@ -244,13 +265,11 @@ jobs:
 
           cd app
 
-          flutter analyze \
-            --no-fatal-infos \
-            --no-fatal-warnings
+          flutter analyze --no-fatal-infos --no-fatal-warnings
 
 
       # ==========================================
-      # 9. BUILD APK
+      # 9. BUILD RELEASE APK
       # ==========================================
       - name: Build Release APK
         run: |
@@ -281,10 +300,7 @@ jobs:
 
           APK="app/build/app/outputs/flutter-apk/app-release.apk"
 
-          if [ ! -f "$APK" ]; then
-            echo "ERROR: APK was not created."
-            exit 1
-          fi
+          test -f "$APK"
 
           echo "======================================"
           echo "WIKALIVE APK BUILD SUCCESSFUL"
