@@ -63,27 +63,33 @@ jobs:
           settings = Path("android/settings.gradle.kts")
           build = Path("android/app/build.gradle.kts")
 
-          # Add Google Services plugin to settings.gradle.kts
+          # --------------------------------------
+          # Configure Google Services in settings
+          # --------------------------------------
           text = settings.read_text()
 
-          if 'com.google.gms.google-services' not in text:
+          if "com.google.gms.google-services" not in text:
               text = text.replace(
-                  'plugins {',
-                  '''plugins {
-              id("com.google.gms.google-services") version "4.5.0" apply false''',
+                  "plugins {",
+                  """plugins {
+              id("com.google.gms.google-services") version "4.4.3" apply false
+          """,
                   1
               )
 
           settings.write_text(text)
 
-          # Add Google Services plugin to app build.gradle.kts
+          # --------------------------------------
+          # Configure Google Services in app
+          # --------------------------------------
           text = build.read_text()
 
-          if 'com.google.gms.google-services' not in text:
+          if 'id("com.google.gms.google-services")' not in text:
               text = text.replace(
-                  'plugins {',
-                  '''plugins {
-              id("com.google.gms.google-services")''',
+                  "plugins {",
+                  """plugins {
+              id("com.google.gms.google-services")
+          """,
                   1
               )
 
@@ -137,14 +143,10 @@ jobs:
 
           for client in data.get("client", []):
 
-              package = client.get(
-                  "client_info",
-                  {}
-              ).get(
-                  "android_client_info",
-                  {}
-              ).get(
-                  "package_name"
+              package = (
+                  client.get("client_info", {})
+                  .get("android_client_info", {})
+                  .get("package_name")
               )
 
               if package == "com.example.wika_live":
@@ -169,7 +171,7 @@ jobs:
 
           cd app
 
-          flutter analyze || true
+          flutter analyze
 
 
       # ==========================================
@@ -222,3 +224,4 @@ jobs:
           name: WikaLive-APK
           path: app/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+          
