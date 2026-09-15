@@ -11,7 +11,14 @@ import 'package:google_sign_in/google_sign_in.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  await GoogleSignIn.instance.initialize(
+    serverClientId:
+        '3472205178-9u0i8qco4otu0qgmm6e9gabh4st49j1r.apps.googleusercontent.com',
+  );
+
   runApp(const WikaLiveApp());
+}
 }
 
 const bg = Color(0xFFF7F7FA);
@@ -89,12 +96,50 @@ class _AuthPageState extends State<AuthPage> {
   setState(() => loading = true);
 
   try {
-    final googleSignIn = GoogleSignIn.instance;
+    Future<void> signInWithGoogle() async {
+  setState(() => loading = true);
 
-await googleSignIn.initialize(
-  serverClientId:
-      '3472205178-9u0i8qco4otu0qgmm6e9gabh4st49j1r.apps.googleusercontent.com',
-);
+  try {
+    final googleUser = await GoogleSignIn.instance.authenticate();
+
+    final googleAuth = googleUser.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      idToken: googleAuth.idToken,
+    );
+
+    await FirebaseAuth.instance.signInWithCredential(credential);
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final ref =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+      if (!(await ref.get()).exists) {
+        await ref.set({
+          'uid': user.uid,
+          'name': user.displayName ?? 'WikaLive User',
+          'email': user.email ?? '',
+          'photoUrl': user.photoUrl ?? '',
+          'coins': 0,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google login failed: $e')),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => loading = false);
+    }
+  }
+}
 
 final googleUser = await googleSignIn.authenticate();
 
