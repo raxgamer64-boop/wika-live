@@ -89,29 +89,22 @@ class _AuthPageState extends State<AuthPage> {
   setState(() => loading = true);
 
   try {
-    final googleSignIn = GoogleSignIn(
+    final googleSignIn = GoogleSignIn.instance;
+
+await googleSignIn.initialize(
   serverClientId:
       '3472205178-9u0i8qco4otu0qgmm6e9gabh4st49j1r.apps.googleusercontent.com',
 );
 
-    final googleUser = await googleSignIn.signIn();
+final googleUser = await googleSignIn.authenticate();
 
-    if (googleUser == null) {
-      if (mounted) {
-        setState(() => loading = false);
-      }
-      return;
-    }
+final googleAuth = googleUser.authentication;
 
-    final googleAuth = await googleUser.authentication;
+final credential = GoogleAuthProvider.credential(
+  idToken: googleAuth.idToken,
+);
 
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    final result =
-        await FirebaseAuth.instance.signInWithCredential(credential);
+await FirebaseAuth.instance.signInWithCredential(credential);
 
     final user = result.user;
 
