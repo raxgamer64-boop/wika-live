@@ -77,7 +77,7 @@ jobs:
           flutter pub add cloud_firestore
           flutter pub add firebase_storage
           flutter pub add image_picker
-          flutter pub add google_sign_in:7.3.0
+          flutter pub add google_sign_in:7.2.0
 
           flutter pub get
 
