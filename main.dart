@@ -106,7 +106,7 @@ final credential = GoogleAuthProvider.credential(
 
 await FirebaseAuth.instance.signInWithCredential(credential);
 
-    final user = result.user;
+    final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
       final ref =
