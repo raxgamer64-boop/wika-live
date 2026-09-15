@@ -1,0 +1,87 @@
+{
+  "project_info": {
+    "project_number": "3472205178",
+    "project_id": "wika-live",
+    "storage_bucket": "wika-live.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:3472205178:android:7551d7523ad5aa49d662c3",
+        "android_client_info": {
+          "package_name": "com.example.wika_live"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "3472205178-0jkit48vvg52qn3qq4nml8r24mvu056d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.wika_live",
+            "certificate_hash": "c6b6ab66134803824d0c3cd8e710c33af20772ec"
+          }
+        },
+        {
+          "client_id": "3472205178-j5jfmr6tmahf73b11mqhn9i393drp66o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.wika_live",
+            "certificate_hash": "3ea5b7c6e0f2d8b75849fb1d0ed021bceb09a7bd"
+          }
+        },
+        {
+          "client_id": "3472205178-ohnmaob05ba7k5bonl5cpvpmc1mos83g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.wika_live",
+            "certificate_hash": "7aeab40ab298ffc83a53a94f22871d58f7cbd8da"
+          }
+        },
+        {
+          "client_id": "3472205178-ojovpcb2cjmjl656bsham4t1aclia5ld.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.wika_live",
+            "certificate_hash": "631ed4dedb75b14f1601fbcfce0566a32610961c"
+          }
+        },
+        {
+          "client_id": "3472205178-sg2rabqj67gqb332unpqjk8ebdd4olst.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.wika_live",
+            "certificate_hash": "84bea44b36aa2542fc6db7b37766cd2603a52bb5"
+          }
+        },
+        {
+          "client_id": "3472205178-uvrt7hr6t6e3rsstkvph17658tvju7en.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.wika_live",
+            "certificate_hash": "ece13bb4bbc4621151e30c03051e35f218862aac"
+          }
+        },
+        {
+          "client_id": "3472205178-9u0i8qco4otu0qgmm6e9gabh4st49j1r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBH8w1pNZNOIaurhNYI73uHQ2AZ6NSQ6Sw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "3472205178-9u0i8qco4otu0qgmm6e9gabh4st49j1r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
