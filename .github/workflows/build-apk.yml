@@ -91,8 +91,8 @@ jobs:
             cp -r ../assets/games/. assets/games/
 
             sed -i '/^  uses-material-design: true$/a\
-            assets:\
-              - assets/games/' pubspec.yaml
+          assets:\
+            - assets/games/' pubspec.yaml
           fi
 
           echo "======================================"
@@ -101,6 +101,15 @@ jobs:
           cat pubspec.yaml
 
           flutter pub get
+
+      - name: Show Android SHA-1
+        working-directory: app/android
+        run: |
+          set -e
+          echo "======================================"
+          echo "WIKALIVE ANDROID SHA-1"
+          echo "======================================"
+          ./gradlew signingReport
 
       - name: Verify Firebase JSON
         run: |
