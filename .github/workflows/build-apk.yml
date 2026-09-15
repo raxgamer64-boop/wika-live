@@ -102,6 +102,25 @@ jobs:
 
           flutter pub get
 
+      - name: Prepare Android Debug Keystore
+        working-directory: app/android
+        run: |
+          set -e
+
+          mkdir -p "$HOME/.config/.android"
+
+          if [ ! -f "$HOME/.config/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.config/.android/debug.keystore" \
+              -storepass android \
+              -alias AndroidDebugKey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
       - name: Show Android SHA-1
         working-directory: app/android
         run: |
