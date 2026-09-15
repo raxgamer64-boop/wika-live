@@ -95,10 +95,10 @@ final googleUser = await googleSignIn.authenticate();
         if (mounted) setState(() => loading = false);
         return;
       }
-      final googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      final googleAuth = googleUser.authentication;
+final credential = GoogleAuthProvider.credential(
+  idToken: googleAuth.idToken,
+);
       );
       final result = await FirebaseAuth.instance.signInWithCredential(credential);
       final user = result.user;
