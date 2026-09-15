@@ -89,7 +89,10 @@ class _AuthPageState extends State<AuthPage> {
   setState(() => loading = true);
 
   try {
-    final googleSignIn = GoogleSignIn();
+    final googleSignIn = GoogleSignIn(
+  serverClientId:
+      '3472205178-9u0i8qco4otu0qgmm6e9gabh4st49j1r.apps.googleusercontent.com',
+);
 
     final googleUser = await googleSignIn.signIn();
 
