@@ -86,41 +86,60 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Future<void> signInWithGoogle() async {
-    setState(() => loading = true);
-    try {
-    final googleSignIn = GoogleSignIn.instance;
-await googleSignIn.initialize();
-final googleUser = await googleSignIn.authenticate();
-      if (googleUser == null) {
-        if (mounted) setState(() => loading = false);
-        return;
+  setState(() => loading = true);
+
+  try {
+    final googleSignIn = GoogleSignIn();
+
+    final googleUser = await googleSignIn.signIn();
+
+    if (googleUser == null) {
+      if (mounted) {
+        setState(() => loading = false);
       }
-      final googleAuth = googleUser.authentication;
-final credential = GoogleAuthProvider.credential(
-  idToken: googleAuth.idToken,
-);
-      );
-      final result = await FirebaseAuth.instance.signInWithCredential(credential);
-      final user = result.user;
-      if (user != null) {
-        final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
-        if (!(await ref.get()).exists) {
-          await ref.set({
-            'uid': user.uid,
-            'name': user.displayName ?? 'WikaLive User',
-            'email': user.email ?? '',
-            'coins': 0,
-            'createdAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        }
-      }
-    } on FirebaseAuthException catch (e) {
-      msg(context, e.message ?? 'Google sign-in failed');
-    } catch (e) {
-      msg(context, 'Google sign-in failed: $e');
+      return;
     }
-    if (mounted) setState(() => loading = false);
+
+    final googleAuth = await googleUser.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final result =
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+    final user = result.user;
+
+    if (user != null) {
+      final ref =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+      if (!(await ref.get()).exists) {
+        await ref.set({
+          'uid': user.uid,
+          'name': user.displayName ?? 'WikaLive User',
+          'email': user.email ?? '',
+          'photoUrl': user.photoURL ?? '',
+          'coins': 0,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      if (mounted) {
+        setState(() => loading = false);
+      }
+    }
+  } catch (e) {
+    if (mounted) {
+      setState(() => loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google login failed: $e')),
+      );
+    }
+  }
   }
 
   void openPhoneLogin() {
