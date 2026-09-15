@@ -19,7 +19,7 @@ Future<void> main() async {
 
   runApp(const WikaLiveApp());
 }
-}
+
 
 const bg = Color(0xFFF7F7FA);
 const card = Colors.white;
