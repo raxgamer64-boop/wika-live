@@ -3,9 +3,6 @@ name: Build WikaLive APK
 on:
   workflow_dispatch:
 
-    branches:
-      - main
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -42,9 +39,9 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
+          # 1. Update settings.gradle.kts
           settings = Path("android/settings.gradle.kts")
           text = settings.read_text()
-
           if "com.google.gms.google-services" not in text:
               text = text.replace(
                   "plugins {",
@@ -53,16 +50,55 @@ jobs:
               )
               settings.write_text(text)
 
+          # 2. Update app/build.gradle.kts
           build = Path("android/app/build.gradle.kts")
           text = build.read_text()
 
+          # Add Google services plugin
           if 'id("com.google.gms.google-services")' not in text:
               text = text.replace(
                   "plugins {",
                   'plugins {\n    id("com.google.gms.google-services")',
                   1,
               )
-              build.write_text(text)
+
+          # Add imports
+          if "import java.util.Properties" not in text:
+              text = "import java.util.Properties\nimport java.io.FileInputStream\n" + text
+
+          # Add keystore loader
+          if "keystoreProperties" not in text:
+              loader = """
+          val keystoreProperties = Properties()
+          val keystorePropertiesFile = rootProject.file("key.properties")
+          if (keystorePropertiesFile.exists()) {
+              keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+          }
+          """
+              text = text.replace("android {", loader + "\nandroid {", 1)
+
+          # Add signing config
+          if "signingConfigs" not in text:
+              signing = """
+                  signingConfigs {
+                      create("release") {
+                          keyAlias = keystoreProperties["keyAlias"] as String
+                          keyPassword = keystoreProperties["keyPassword"] as String
+                          storeFile = file(keystoreProperties["storeFile"] as String)
+                          storePassword = keystoreProperties["storePassword"] as String
+                      }
+                  }
+              """
+              text = text.replace("android {", "android {" + signing, 1)
+
+          # Change buildTypes to use release signing config
+          if 'signingConfig = signingConfigs.getByName("debug")' in text:
+              text = text.replace(
+                  'signingConfig = signingConfigs.getByName("debug")',
+                  'signingConfig = signingConfigs.getByName("release")'
+              )
+
+          build.write_text(text)
           PY
 
           test -f android/app/google-services.json
@@ -102,33 +138,25 @@ jobs:
 
           flutter pub get
 
-      - name: Prepare Android Debug Keystore
+      - name: Setup Release Keystore
         working-directory: app/android
         run: |
-          set -e
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > wika-release-key.jks
+          cat > key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=wika-release-key.jks
+          EOF
 
-          mkdir -p "$HOME/.config/.android"
-
-          if [ ! -f "$HOME/.config/.android/debug.keystore" ]; then
-            keytool -genkeypair -v \
-              -keystore "$HOME/.config/.android/debug.keystore" \
-              -storepass android \
-              -alias AndroidDebugKey \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-          fi
-
-      - name: Show Android SHA-1
+      - name: Show Release SHA-1
         working-directory: app/android
         run: |
           set -e
           echo "======================================"
-          echo "WIKALIVE ANDROID SHA-1"
+          echo "WIKALIVE RELEASE SHA-1"
           echo "======================================"
-          ./gradlew signingReport
+          keytool -list -v -keystore wika-release-key.jks -storepass ${{ secrets.KEYSTORE_PASSWORD }} -alias ${{ secrets.KEY_ALIAS }}
 
       - name: Verify Firebase JSON
         run: |
