@@ -2,7 +2,8 @@ name: Build WikaLive APK
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -16,19 +17,26 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.4'
+          flutter-version: "3.35.4"
           channel: stable
           cache: true
 
       - name: Create Flutter project
         run: |
           set -e
-          flutter create --org com.example --project-name wika_live app
+
+          flutter create \
+            --org com.example \
+            --project-name wika_live \
+            app
 
       - name: Copy app files
         run: |
           set -e
+
+          test -f main.dart
           cp main.dart app/lib/main.dart
+
           test -f google-services.json
           cp google-services.json app/android/app/google-services.json
 
@@ -36,27 +44,34 @@ jobs:
         working-directory: app
         run: |
           set -e
+
           python3 - <<'PY'
           from pathlib import Path
 
+          # Configure Google Services plugin in settings.gradle.kts
           p = Path("android/settings.gradle.kts")
           s = p.read_text()
-          if 'com.google.gms.google-services' not in s:
-              s = s.replace(
-                  'plugins {',
-                  'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false',
-                  1,
-              )
-          p.write_text(s)
 
-          p = Path("android/app/build.gradle.kts")
-          s = p.read_text()
           if 'id("com.google.gms.google-services")' not in s:
               s = s.replace(
-                  'plugins {',
-                  'plugins {\n    id("com.google.gms.google-services")',
-                  1,
+                  "plugins {",
+                  'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false',
+                  1
               )
+
+          p.write_text(s)
+
+          # Apply Google Services plugin to app module
+          p = Path("android/app/build.gradle.kts")
+          s = p.read_text()
+
+          if 'id("com.google.gms.google-services")' not in s:
+              s = s.replace(
+                  "plugins {",
+                  'plugins {\n    id("com.google.gms.google-services")',
+                  1
+              )
+
           p.write_text(s)
           PY
 
@@ -64,21 +79,68 @@ jobs:
         working-directory: app
         run: |
           set -e
+
           flutter pub add firebase_core
           flutter pub add firebase_auth
           flutter pub add cloud_firestore
           flutter pub add firebase_storage
           flutter pub add image_picker
           flutter pub add google_sign_in:7.2.0
+
           flutter pub get
 
       - name: Check signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          echo "KEYSTORE_BASE64 set: ${{ secrets.KEYSTORE_BASE64 != '' }}"
-          echo "KEYSTORE_PASS set: ${{ secrets.KEYSTORE_PASS != '' }}"
-          echo "KEY_ALIAS set: ${{ secrets.KEY_ALIAS != '' }}"
-          echo "KEY_PASSWORD set: ${{ secrets.KEY_PASSWORD != '' }}"
-          
+          set -e
+
+          MISSING=0
+
+          if [ -z "${KEYSTORE_BASE64:-}" ]; then
+            echo "KEYSTORE_BASE64 set: false"
+            MISSING=1
+          else
+            echo "KEYSTORE_BASE64 set: true"
+          fi
+
+          if [ -z "${KEYSTORE_PASS:-}" ]; then
+            echo "KEYSTORE_PASS set: false"
+            MISSING=1
+          else
+            echo "KEYSTORE_PASS set: true"
+          fi
+
+          if [ -z "${KEY_ALIAS:-}" ]; then
+            echo "KEY_ALIAS set: false"
+            MISSING=1
+          else
+            echo "KEY_ALIAS set: true"
+          fi
+
+          if [ -z "${KEY_PASSWORD:-}" ]; then
+            echo "KEY_PASSWORD set: false"
+            MISSING=1
+          else
+            echo "KEY_PASSWORD set: true"
+          fi
+
+          if [ "$MISSING" -ne 0 ]; then
+            echo ""
+            echo "ERROR: One or more Android signing secrets are missing."
+            echo "Required GitHub Repository Secrets:"
+            echo "  KEYSTORE_BASE64"
+            echo "  KEYSTORE_PASS"
+            echo "  KEY_ALIAS"
+            echo "  KEY_PASSWORD"
+            exit 1
+          fi
+
+          echo ""
+          echo "All Android signing secrets are available."
 
       - name: Configure release signing
         working-directory: app
@@ -90,15 +152,7 @@ jobs:
         run: |
           set -e
 
-          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
-            echo "ERROR: Android signing secrets are missing."
-            echo "Required GitHub Secrets:"
-            echo "  KEYSTORE_BASE64"
-            echo "  KEYSTORE_PASS"
-            echo "  KEY_ALIAS"
-            echo "  KEY_PASSWORD"
-            exit 1
-          fi
+          mkdir -p android/app
 
           echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
 
@@ -117,55 +171,94 @@ jobs:
           p = Path("android/app/build.gradle.kts")
           s = p.read_text()
 
-          marker = "android {"
-          if "create("release")" not in s:
-              block = '''android {
+          # Add release signing configuration inside android {}
+          if 'create("release")' not in s:
+              signing_block = '''
               signingConfigs {
                   create("release") {
                       val propsFile = rootProject.file("key.properties")
                       val props = java.util.Properties()
+
                       if (propsFile.exists()) {
-                          propsFile.inputStream().use { props.load(it) }
+                          propsFile.inputStream().use {
+                              props.load(it)
+                          }
                       }
-                      storeFile = file(props["storeFile"]?.toString() ?: "upload-keystore.jks")
+
+                      storeFile = file(
+                          props["storeFile"]?.toString()
+                              ?: "upload-keystore.jks"
+                      )
+
                       storePassword = props["storePassword"]?.toString()
                       keyAlias = props["keyAlias"]?.toString()
                       keyPassword = props["keyPassword"]?.toString()
                   }
-              }'''
-              s = s.replace(marker, block, 1)
+              }
+              '''
 
-          if 'signingConfig = signingConfigs.getByName("release")' not in s:
               s = s.replace(
-                  'buildTypes {',
-                  '''buildTypes {
+                  "android {",
+                  "android {" + signing_block,
+                  1
+              )
+
+          # Configure release build type
+          if 'signingConfig = signingConfigs.getByName("release")' not in s:
+
+              # Replace Flutter's default debug signing for release
+              s = s.replace(
+                  'signingConfig = signingConfigs.getByName("debug")',
+                  'signingConfig = signingConfigs.getByName("release")'
+              )
+
+              # If release signing wasn't inserted through the replacement,
+              # add it to the existing release build type.
+              if 'signingConfig = signingConfigs.getByName("release")' not in s:
+                  s = s.replace(
+                      'buildTypes {',
+                      '''buildTypes {
                   getByName("release") {
                       signingConfig = signingConfigs.getByName("release")
                   }''',
-                  1,
-              )
+                      1
+                  )
 
           p.write_text(s)
           PY
 
-          echo "Release signing configured."
-          keytool -list             -keystore android/app/upload-keystore.jks             -storepass "$KEYSTORE_PASS"             -alias "$KEY_ALIAS"
+          echo "Release signing configuration created."
+
+          keytool -list \
+            -keystore android/app/upload-keystore.jks \
+            -storepass "$KEYSTORE_PASS" \
+            -alias "$KEY_ALIAS"
+
+          echo "Keystore verification successful."
 
       - name: Analyze Dart
         working-directory: app
         run: |
           set -e
-          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+          flutter analyze \
+            --no-fatal-infos \
+            --no-fatal-warnings
 
       - name: Build release APK
         working-directory: app
         run: |
           set -e
+
           flutter build apk --release
+
+          test -f build/app/outputs/flutter-apk/app-release.apk
+
+          echo "Release APK successfully created."
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: WikaLive-release-apk
           path: app/build/app/outputs/flutter-apk/app-release.apk
-          
+          if-no-files-found: error
