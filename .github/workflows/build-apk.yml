@@ -38,6 +38,8 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
+          import re
+          import textwrap
 
           # 1. Update settings.gradle.kts
           settings = Path("android/settings.gradle.kts")
@@ -60,18 +62,18 @@ jobs:
 
           # Add keystore loader before android block
           if "keystoreProperties" not in text:
-              loader = """
-          val keystoreProperties = Properties()
-          val keystorePropertiesFile = rootProject.file("key.properties")
-          if (keystorePropertiesFile.exists()) {
-              keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-          }
-          """
-              text = text.replace("android {", loader + "\nandroid {", 1)
+              loader = textwrap.dedent("""
+              val keystoreProperties = Properties()
+              val keystorePropertiesFile = rootProject.file("key.properties")
+              if (keystorePropertiesFile.exists()) {
+                  keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+              }
+              """)
+              text = re.sub(r'(?m)^(android\s*\{)', loader + r'\1', text, count=1)
 
-          # Add signing config inside android block
+          # Add signing config inside android block, right before buildTypes
           if "signingConfigs" not in text:
-              signing = """
+              signing = textwrap.dedent("""
               signingConfigs {
                   create("release") {
                       keyAlias = keystoreProperties["keyAlias"] as String
@@ -80,15 +82,27 @@ jobs:
                       storePassword = keystoreProperties["storePassword"] as String
                   }
               }
-          """
-              text = text.replace("android {", "android {" + signing, 1)
+              """)
+              # Apply indentation to match buildTypes block
+              signing_lines = signing.split("\n")
+              indented_signing = []
+              for line in signing_lines:
+                  if line.strip():
+                      indented_signing.append("    " + line)
+                  else:
+                      indented_signing.append(line)
+              signing_indented = "\n".join(indented_signing)
 
-          # Change buildTypes to use release signing config
-          if 'signingConfig = signingConfigs.getByName("debug")' in text:
-              text = text.replace(
-                  'signingConfig = signingConfigs.getByName("debug")',
-                  'signingConfig = signingConfigs.getByName("release")'
-              )
+              text = re.sub(r'(?m)^(\s*)buildTypes\s*\{', r'\1' + signing_indented + r'\1buildTypes {', text, count=1)
+
+          # Change debug to release
+          text = text.replace('signingConfigs.getByName("debug")', 'signingConfigs.getByName("release")')
+
+          # Fix deprecated kotlinOptions
+          if "kotlinOptions" in text:
+              pattern = r'kotlinOptions\s*\{\s*jvmTarget\s*=\s*JavaVersion\.VERSION_11\.toString\(\)\s*\}'
+              replacement = "kotlin {\n    compilerOptions {\n        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)\n    }\n}"
+              text = re.sub(pattern, replacement, text)
 
           build.write_text(text)
           PY
