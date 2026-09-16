@@ -38,7 +38,7 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
-          import re
+          import textwrap
 
           # 1. Update settings.gradle.kts
           settings = Path("android/settings.gradle.kts")
@@ -51,37 +51,46 @@ jobs:
               )
               settings.write_text(text)
 
-          # 2. Update app/build.gradle.kts
-          build = Path("android/app/build.gradle.kts")
-          text = build.read_text()
+          # 2. Overwrite app/build.gradle.kts with correct configuration
+          build_gradle_content = textwrap.dedent("""
+          plugins {
+              id("com.android.application")
+              id("kotlin-android")
+              id("dev.flutter.flutter-gradle-plugin")
+              id("com.google.gms.google-services")
+          }
 
-          # Add Google services plugin
-          if 'id("com.google.gms.google-services")' not in text:
-              text = text.replace(
-                  "plugins {",
-                  'plugins {\n    id("com.google.gms.google-services")',
-                  1,
-              )
+          import java.util.Properties
+          import java.io.FileInputStream
 
-          # Add imports
-          if "import java.util.Properties" not in text:
-              text = "import java.util.Properties\nimport java.io.FileInputStream\n" + text
-
-          # Add keystore loader before android block
-          if "keystoreProperties" not in text:
-              loader = """
           val keystoreProperties = Properties()
           val keystorePropertiesFile = rootProject.file("key.properties")
           if (keystorePropertiesFile.exists()) {
               keystoreProperties.load(FileInputStream(keystorePropertiesFile))
           }
-          """
-              # Use regex to find 'android {' and insert loader before it
-              text = re.sub(r'(?m)^android\s*\{', loader + "\nandroid {", text, count=1)
 
-          # Add signing config inside android block
-          if "signingConfigs" not in text:
-              signing = """
+          android {
+              namespace = "com.example.wika_live"
+              compileSdk = flutter.compileSdkVersion
+              ndkVersion = flutter.ndkVersion
+
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_11
+                  targetCompatibility = JavaVersion.VERSION_11
+              }
+
+              kotlinOptions {
+                  jvmTarget = JavaVersion.VERSION_11.toString()
+              }
+
+              defaultConfig {
+                  applicationId = "com.example.wika_live"
+                  minSdk = flutter.minSdkVersion
+                  targetSdk = flutter.targetSdkVersion
+                  versionCode = flutter.versionCode
+                  versionName = flutter.versionName
+              }
+
               signingConfigs {
                   create("release") {
                       keyAlias = keystoreProperties["keyAlias"] as String
@@ -90,19 +99,20 @@ jobs:
                       storePassword = keystoreProperties["storePassword"] as String
                   }
               }
-          """
-              # Use regex to find 'android {' and insert signing config inside it
-              text = re.sub(r'(?m)^android\s*\{', "android {" + signing, text, count=1)
 
-          # Change buildTypes to use release signing config
-          # Replace the default debug signing config with release
-          text = re.sub(
-              r'signingConfig\s*=\s*signingConfigs\.getByName\("debug"\)',
-              'signingConfig = signingConfigs.getByName("release")',
-              text
-          )
+              buildTypes {
+                  release {
+                      signingConfig = signingConfigs.getByName("release")
+                  }
+              }
+          }
 
-          build.write_text(text)
+          flutter {
+              source = "../.."
+          }
+          """)
+
+          Path("android/app/build.gradle.kts").write_text(build_gradle_content)
           PY
 
           test -f android/app/google-services.json
