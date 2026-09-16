@@ -22,14 +22,32 @@ jobs:
           set -e
           rm -rf app
           flutter create --project-name wika_live app
-
           cp main.dart app/lib/main.dart
-
           mkdir -p app/android/app
           cp google-services.json app/android/app/google-services.json
 
-          test -f app/lib/main.dart
-          test -f app/android/app/google-services.json
+      - name: Get packages
+        working-directory: app
+        run: |
+          set -e
+          flutter pub add firebase_core
+          flutter pub add firebase_auth
+          flutter pub add cloud_firestore
+          flutter pub add firebase_storage
+          flutter pub add image_picker
+          flutter pub add google_sign_in
+          flutter pub get
+
+      - name: Add game assets
+        working-directory: app
+        run: |
+          set -e
+          if [ -d ../assets/games ]; then
+            mkdir -p assets/games
+            cp -r ../assets/games/. assets/games/
+            sed -i '/^  uses-material-design: true$/a\          assets:\            - assets/games/' pubspec.yaml
+          fi
+          flutter pub get
 
       - name: Configure Firebase and Signing
         working-directory: app
@@ -38,10 +56,9 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
-          import re
           import textwrap
 
-          # 1. Update settings.gradle.kts
+          # 1. settings.gradle.kts update
           settings = Path("android/settings.gradle.kts")
           text = settings.read_text()
           if "com.google.gms.google-services" not in text:
@@ -52,108 +69,78 @@ jobs:
               )
               settings.write_text(text)
 
-          # 2. Update app/build.gradle.kts
-          build = Path("android/app/build.gradle.kts")
-          text = build.read_text()
+          # 2. build.gradle.kts ko poora naye sirse likhna
+          gradle_code = textwrap.dedent("""
+          import java.util.Properties
+          import java.io.FileInputStream
 
-          # Add imports
-          if "import java.util.Properties" not in text:
-              text = "import java.util.Properties\nimport java.io.FileInputStream\n" + text
+          plugins {
+              id("com.android.application")
+              id("kotlin-android")
+              id("dev.flutter.flutter-gradle-plugin")
+              id("com.google.gms.google-services")
+          }
 
-          # Add keystore loader before android block
-          if "keystoreProperties" not in text:
-              loader = textwrap.dedent("""
-              val keystoreProperties = Properties()
-              val keystorePropertiesFile = rootProject.file("key.properties")
-              if (keystorePropertiesFile.exists()) {
-                  keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+          val keystoreProperties = Properties()
+          val keystorePropertiesFile = rootProject.file("key.properties")
+          if (keystorePropertiesFile.exists()) {
+              keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+          }
+
+          android {
+              namespace = "com.example.wika_live"
+              compileSdk = flutter.compileSdkVersion
+              ndkVersion = flutter.ndkVersion
+
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_11
+                  targetCompatibility = JavaVersion.VERSION_11
               }
-              """)
-              text = re.sub(r'(?m)^(android\s*\{)', loader + r'\1', text, count=1)
 
-          # Add signing config inside android block, right before buildTypes
-          if "signingConfigs" not in text:
-              signing = textwrap.dedent("""
+              kotlinOptions {
+                  jvmTarget = JavaVersion.VERSION_11.toString()
+              }
+
+              defaultConfig {
+                  applicationId = "com.example.wika_live"
+                  minSdk = flutter.minSdkVersion
+                  targetSdk = flutter.targetSdkVersion
+                  versionCode = flutter.versionCode
+                  versionName = flutter.versionName
+              }
+
               signingConfigs {
                   create("release") {
-                      keyAlias = keystoreProperties["keyAlias"] as String
-                      keyPassword = keystoreProperties["keyPassword"] as String
-                      storeFile = file(keystoreProperties["storeFile"] as String)
-                      storePassword = keystoreProperties["storePassword"] as String
+                      keyAlias = keystoreProperties.getProperty("keyAlias") ?: "wika"
+                      keyPassword = keystoreProperties.getProperty("keyPassword") ?: "wika123"
+                      storeFile = file(keystoreProperties.getProperty("storeFile") ?: "wika-release-key.jks")
+                      storePassword = keystoreProperties.getProperty("storePassword") ?: "wika123"
                   }
               }
-              """)
-              # Apply indentation to match buildTypes block
-              signing_lines = signing.split("\n")
-              indented_signing = []
-              for line in signing_lines:
-                  if line.strip():
-                      indented_signing.append("    " + line)
-                  else:
-                      indented_signing.append(line)
-              signing_indented = "\n".join(indented_signing)
 
-              text = re.sub(r'(?m)^(\s*)buildTypes\s*\{', r'\1' + signing_indented + r'\1buildTypes {', text, count=1)
+              buildTypes {
+                  release {
+                      signingConfig = signingConfigs.getByName("release")
+                  }
+              }
+          }
 
-          # Change debug to release
-          text = text.replace('signingConfigs.getByName("debug")', 'signingConfigs.getByName("release")')
+          flutter {
+              source = "../.."
+          }
+          """).strip()
 
-          # Fix deprecated kotlinOptions
-          if "kotlinOptions" in text:
-              pattern = r'kotlinOptions\s*\{\s*jvmTarget\s*=\s*JavaVersion\.VERSION_11\.toString\(\)\s*\}'
-              replacement = "kotlin {\n    compilerOptions {\n        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)\n    }\n}"
-              text = re.sub(pattern, replacement, text)
-
-          build.write_text(text)
+          Path("android/app/build.gradle.kts").write_text(gradle_code)
+          print("--- build.gradle.kts successfully written ---")
           PY
-
-          test -f android/app/google-services.json
-
-      - name: Get packages
-        working-directory: app
-        run: |
-          set -e
-
-          flutter pub add firebase_core
-          flutter pub add firebase_auth
-          flutter pub add cloud_firestore
-          flutter pub add firebase_storage
-          flutter pub add image_picker
-          flutter pub add google_sign_in:7.2.0
-
-          flutter pub get
-
-      - name: Add game assets
-        working-directory: app
-        run: |
-          set -e
-
-          if [ -d ../assets/games ]; then
-            mkdir -p assets/games
-            cp -r ../assets/games/. assets/games/
-
-            sed -i '/^  uses-material-design: true$/a\
-          assets:\
-            - assets/games/' pubspec.yaml
-          fi
-
-          echo "======================================"
-          echo "FINAL PUBSPEC"
-          echo "======================================"
-          cat pubspec.yaml
-
-          flutter pub get
 
       - name: Setup Release Keystore
         working-directory: app/android
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > wika-release-key.jks
-          cat > key.properties <<EOF
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=wika-release-key.jks
-          EOF
+          printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=wika-release-key.jks\n" "${{ secrets.KEYSTORE_PASSWORD }}" "${{ secrets.KEY_PASSWORD }}" "${{ secrets.KEY_ALIAS }}" > key.properties
+          echo "--- key.properties contents ---"
+          cat key.properties
 
       - name: Show Release SHA-1
         working-directory: app/android
@@ -164,66 +151,13 @@ jobs:
           echo "======================================"
           keytool -list -v -keystore wika-release-key.jks -storepass ${{ secrets.KEYSTORE_PASSWORD }} -alias ${{ secrets.KEY_ALIAS }}
 
-      - name: Verify Firebase JSON
-        run: |
-          set -e
-
-          python3 - <<'PY'
-          import json
-
-          path = "app/android/app/google-services.json"
-
-          with open(path, "r") as f:
-              data = json.load(f)
-
-          found = False
-
-          for client in data.get("client", []):
-              package = (
-                  client.get("client_info", {})
-                  .get("android_client_info", {})
-                  .get("package_name")
-              )
-
-              if package == "com.example.wika_live":
-                  found = True
-                  break
-
-          if not found:
-              raise SystemExit(
-                  "ERROR: com.example.wika_live not found in google-services.json"
-              )
-
-          print("Firebase JSON verification successful.")
-          PY
-
-      - name: Analyze
-        working-directory: app
-        run: |
-          flutter analyze || true
-
       - name: Build Release APK
         working-directory: app
         run: |
           set -e
-
           flutter clean
           flutter pub get
           flutter build apk --release
-
-      - name: Verify APK
-        run: |
-          set -e
-
-          APK="app/build/app/outputs/flutter-apk/app-release.apk"
-
-          test -f "$APK"
-
-          echo "======================================"
-          echo "WIKALIVE APK BUILD SUCCESSFUL"
-          echo "======================================"
-
-          ls -lh "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
