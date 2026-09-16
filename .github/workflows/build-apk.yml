@@ -31,13 +31,14 @@ jobs:
           test -f app/lib/main.dart
           test -f app/android/app/google-services.json
 
-      - name: Configure Firebase
+      - name: Configure Firebase and Signing
         working-directory: app
         run: |
           set -e
 
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           # 1. Update settings.gradle.kts
           settings = Path("android/settings.gradle.kts")
@@ -66,7 +67,7 @@ jobs:
           if "import java.util.Properties" not in text:
               text = "import java.util.Properties\nimport java.io.FileInputStream\n" + text
 
-          # Add keystore loader
+          # Add keystore loader before android block
           if "keystoreProperties" not in text:
               loader = """
           val keystoreProperties = Properties()
@@ -75,28 +76,31 @@ jobs:
               keystoreProperties.load(FileInputStream(keystorePropertiesFile))
           }
           """
-              text = text.replace("android {", loader + "\nandroid {", 1)
+              # Use regex to find 'android {' and insert loader before it
+              text = re.sub(r'(?m)^android\s*\{', loader + "\nandroid {", text, count=1)
 
-          # Add signing config
+          # Add signing config inside android block
           if "signingConfigs" not in text:
               signing = """
-                  signingConfigs {
-                      create("release") {
-                          keyAlias = keystoreProperties["keyAlias"] as String
-                          keyPassword = keystoreProperties["keyPassword"] as String
-                          storeFile = file(keystoreProperties["storeFile"] as String)
-                          storePassword = keystoreProperties["storePassword"] as String
-                      }
+              signingConfigs {
+                  create("release") {
+                      keyAlias = keystoreProperties["keyAlias"] as String
+                      keyPassword = keystoreProperties["keyPassword"] as String
+                      storeFile = file(keystoreProperties["storeFile"] as String)
+                      storePassword = keystoreProperties["storePassword"] as String
                   }
-              """
-              text = text.replace("android {", "android {" + signing, 1)
+              }
+          """
+              # Use regex to find 'android {' and insert signing config inside it
+              text = re.sub(r'(?m)^android\s*\{', "android {" + signing, text, count=1)
 
           # Change buildTypes to use release signing config
-          if 'signingConfig = signingConfigs.getByName("debug")' in text:
-              text = text.replace(
-                  'signingConfig = signingConfigs.getByName("debug")',
-                  'signingConfig = signingConfigs.getByName("release")'
-              )
+          # Replace the default debug signing config with release
+          text = re.sub(
+              r'signingConfig\s*=\s*signingConfigs\.getByName\("debug"\)',
+              'signingConfig = signingConfigs.getByName("release")',
+              text
+          )
 
           build.write_text(text)
           PY
