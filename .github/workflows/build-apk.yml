@@ -2,8 +2,7 @@ name: Build WikaLive APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -17,227 +16,97 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.35.4'
           channel: stable
           cache: true
 
       - name: Create Flutter project
         run: |
           set -e
-          rm -rf app
-          flutter create --project-name wika_live app
+          flutter create --org com.example --project-name wika_live app
 
+      - name: Copy app files
+        run: |
+          set -e
           cp main.dart app/lib/main.dart
+          test -f google-services.json && cp google-services.json app/android/app/google-services.json || true
 
-          mkdir -p app/android/app
-          cp google-services.json app/android/app/google-services.json
-
-      - name: Get packages
+      - name: Configure Firebase Google Services
         working-directory: app
         run: |
           set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/settings.gradle.kts')
+          s = p.read_text()
+          s = s.replace(
+              'plugins {',
+              'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false',
+              1,
+          )
+          p.write_text(s)
+          p = Path('android/app/build.gradle.kts')
+          s = p.read_text()
+          s = s.replace(
+              'plugins {',
+              'plugins {\n    id("com.google.gms.google-services")',
+              1,
+          )
+          p.write_text(s)
+          PY
 
+      - name: Add packages
+        working-directory: app
+        run: |
+          set -e
           flutter pub add firebase_core
           flutter pub add firebase_auth
           flutter pub add cloud_firestore
           flutter pub add firebase_storage
           flutter pub add image_picker
           flutter pub add google_sign_in:7.2.0
-
           flutter pub get
 
-      - name: Add game assets
+      - name: Configure release signing
         working-directory: app
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -e
-
-          if [ -d ../assets/games ]; then
-            mkdir -p assets/games
-            cp -r ../assets/games/. assets/games/
-
-            python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path("pubspec.yaml")
-          text = p.read_text()
-
-          if "  assets/games/" not in text:
-              marker = "  uses-material-design: true"
-
-              if marker in text:
-                  text = text.replace(
-                      marker,
-                      marker + "\n  assets:\n    - assets/games/",
-                      1,
-                  )
-
-          p.write_text(text)
-          PY
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            cat > android/key.properties <<EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
           fi
-
-          flutter pub get
-
-      - name: Configure Firebase and Release Signing
-        working-directory: app
-        run: |
-          set -e
-
           python3 - <<'PY'
           from pathlib import Path
-
-          build = Path("android/app/build.gradle.kts")
-          text = build.read_text()
-
-          # -------------------------------------------------
-          # Imports
-          # -------------------------------------------------
-          imports = """import java.util.Properties
-          import java.io.FileInputStream
-          """
-
-          if "import java.util.Properties" not in text:
-              text = imports + "\n" + text
-
-          # -------------------------------------------------
-          # Google Services plugin
-          # -------------------------------------------------
-          if 'id("com.google.gms.google-services")' not in text:
-              text = text.replace(
-                  "plugins {",
-                  'plugins {\n    id("com.google.gms.google-services")',
-                  1,
-              )
-
-          # -------------------------------------------------
-          # Load key.properties
-          # key.properties is:
-          # android/app/key.properties
-          # -------------------------------------------------
-          signing_loader = """
-          val keystoreProperties = Properties()
-          val keystorePropertiesFile = rootProject.file("app/key.properties")
-
-          if (keystorePropertiesFile.exists()) {
-              keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-          }
-
-          """
-
-          if "val keystoreProperties = Properties()" not in text:
+          p = Path('android/app/build.gradle.kts')
+          s = p.read_text()
+          if 'signingConfigs {' not in s:
               marker = 'android {'
-
-              if marker in text:
-                  text = text.replace(
-                      marker,
-                      signing_loader + marker,
-                      1,
-                  )
-
-          # -------------------------------------------------
-          # Release signing config
-          # -------------------------------------------------
-          signing_config = """
-              signingConfigs {
-                  create("release") {
-                      keyAlias = keystoreProperties.getProperty("keyAlias")
-                      keyPassword = keystoreProperties.getProperty("keyPassword")
-                      storeFile = keystoreProperties.getProperty("storeFile")?.let {
-                          file(it)
-                      }
-                      storePassword = keystoreProperties.getProperty("storePassword")
-                  }
-              }
-
-          """
-
-          if 'create("release")' not in text:
-              marker = "    buildTypes {"
-
-              if marker in text:
-                  text = text.replace(
-                      marker,
-                      signing_config + marker,
-                      1,
-                  )
-              else:
-                  raise RuntimeError(
-                      "Could not find buildTypes block in android/app/build.gradle.kts"
-                  )
-
-          # -------------------------------------------------
-          # Use release signing config
-          # -------------------------------------------------
-          text = text.replace(
-              'signingConfig = signingConfigs.getByName("debug")',
-              'signingConfig = signingConfigs.getByName("release")',
-          )
-
-          build.write_text(text)
-
-          # -------------------------------------------------
-          # settings.gradle.kts
-          # Add Google Services plugin version
-          # -------------------------------------------------
-          settings = Path("android/settings.gradle.kts")
-          stext = settings.read_text()
-
-          if "com.google.gms.google-services" not in stext:
-              stext = stext.replace(
-                  "plugins {",
-                  'plugins {\n    id("com.google.gms.google-services") version "4.4.3" apply false',
-                  1,
-              )
-
-          settings.write_text(stext)
-
-          print("===== android/app/build.gradle.kts =====")
-          print(build.read_text())
-
-          print("===== android/settings.gradle.kts =====")
-          print(settings.read_text())
+              block = '''android {\n    signingConfigs {\n        create("release") {\n            val propsFile = rootProject.file("key.properties")\n            if (propsFile.exists()) {\n                val props = java.util.Properties().apply { propsFile.inputStream().use { load(it) } }\n                storeFile = file("${props["storeFile"]}")\n                storePassword = props["storePassword"]?.toString()\n                keyAlias = props["keyAlias"]?.toString()\n                keyPassword = props["keyPassword"]?.toString()\n            }\n        }\n    }'''
+              s=s.replace(marker, block, 1)
+          p.write_text(s)
           PY
 
-      - name: Setup Release Keystore
-        working-directory: app/android
-        run: |
-          set -e
-
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/wika-release-key.jks
-
-          printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=wika-release-key.jks\n" \
-            "${{ secrets.KEYSTORE_PASSWORD }}" \
-            "${{ secrets.KEY_PASSWORD }}" \
-            "${{ secrets.KEY_ALIAS }}" \
-            > app/key.properties
-
-          echo "Release keystore created."
-
-      - name: Show Release SHA-1
-        working-directory: app/android
-        run: |
-          set -e
-
-          echo "======================================"
-          echo "WIKALIVE RELEASE SHA-1"
-          echo "======================================"
-
-          keytool -list -v \
-            -keystore app/wika-release-key.jks \
-            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-            -alias "${{ secrets.KEY_ALIAS }}"
-
-      - name: Build Release APK
+      - name: Analyze Dart
         working-directory: app
-        run: |
-          set -e
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-          flutter clean
-          flutter pub get
-
-          flutter build apk --release
+      - name: Build release APK
+        working-directory: app
+        run: flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: WikaLive-APK
+          name: WikaLive-release-apk
           path: app/build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
+          
