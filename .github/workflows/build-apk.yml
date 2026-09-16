@@ -72,6 +72,14 @@ jobs:
           flutter pub add google_sign_in:7.2.0
           flutter pub get
 
+      - name: Check signing secrets
+        run: |
+          echo "KEYSTORE_BASE64 set: ${{ secrets.KEYSTORE_BASE64 != '' }}"
+          echo "KEYSTORE_PASS set: ${{ secrets.KEYSTORE_PASS != '' }}"
+          echo "KEY_ALIAS set: ${{ secrets.KEY_ALIAS != '' }}"
+          echo "KEY_PASSWORD set: ${{ secrets.KEY_PASSWORD != '' }}"
+          
+
       - name: Configure release signing
         working-directory: app
         env:
