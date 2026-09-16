@@ -49,15 +49,16 @@ jobs:
           fi
           flutter pub get
 
-      - name: Configure Firebase and Signing (Groovy)
+      - name: Configure Firebase and Signing
         working-directory: app
         run: |
           set -e
 
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
-          # 1. Update settings.gradle.kts for Google Services
+          # 1. settings.gradle.kts mein Google Services plugin add karo
           settings = Path("android/settings.gradle.kts")
           text = settings.read_text()
           if "com.google.gms.google-services" not in text:
@@ -68,99 +69,62 @@ jobs:
               )
               settings.write_text(text)
 
-          # 2. Remove Kotlin DSL build file and create Groovy build file
-          kts_path = Path("android/app/build.gradle.kts")
-          if kts_path.exists():
-              kts_path.unlink()
+          # 2. app/build.gradle.kts ko edit karo
+          build = Path("android/app/build.gradle.kts")
+          text = build.read_text()
 
-          groovy_path = Path("android/app/build.gradle")
-          groovy_code = """
-          def localProperties = new Properties()
-          def localPropertiesFile = rootProject.file('local.properties')
-          if (localPropertiesFile.exists()) {
-              localPropertiesFile.withReader('UTF-8') { reader ->
-                  localProperties.load(reader)
-              }
-          }
+          # Google services plugin add karo
+          if 'id("com.google.gms.google-services")' not in text:
+              text = text.replace(
+                  "plugins {",
+                  'plugins {\n    id("com.google.gms.google-services")',
+                  1,
+              )
 
-          def flutterRoot = localProperties.getProperty('flutter.sdk')
-          if (flutterRoot == null) {
-              throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
-          }
+          # Imports add karo
+          if "import java.util.Properties" not in text:
+              text = "import java.util.Properties\nimport java.io.FileInputStream\n" + text
 
-          def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-          if (flutterVersionCode == null) {
-              flutterVersionCode = '1'
-          }
-
-          def flutterVersionName = localProperties.getProperty('flutter.versionName')
-          if (flutterVersionName == null) {
-              flutterVersionName = '1.0'
-          }
-
-          apply plugin: 'com.android.application'
-          apply plugin: 'kotlin-android'
-          apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
-          apply plugin: 'com.google.gms.google-services'
-
-          def keystoreProperties = new Properties()
-          def keystorePropertiesFile = rootProject.file('key.properties')
+          # Keystore loader ko android block se pehle add karo
+          if "val keystoreProperties" not in text:
+              loader = """
+          val keystoreProperties = Properties()
+          val keystorePropertiesFile = rootProject.file("key.properties")
           if (keystorePropertiesFile.exists()) {
-              keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-          }
-
-          android {
-              namespace "com.example.wika_live"
-              compileSdkVersion flutter.compileSdkVersion
-              ndkVersion flutter.ndkVersion
-
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_1_8
-                  targetCompatibility JavaVersion.VERSION_1_8
-              }
-
-              kotlinOptions {
-                  jvmTarget = '1.8'
-              }
-
-              sourceSets {
-                  main.java.srcDirs += 'src/main/kotlin'
-              }
-
-              defaultConfig {
-                  applicationId "com.example.wika_live"
-                  minSdkVersion flutter.minSdkVersion
-                  targetSdkVersion flutter.targetSdkVersion
-                  versionCode flutterVersionCode.toInteger()
-                  versionName flutterVersionName
-              }
-
-              signingConfigs {
-                  release {
-                      keyAlias keystoreProperties['keyAlias']
-                      keyPassword keystoreProperties['keyPassword']
-                      storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-                      storePassword keystoreProperties['storePassword']
-                  }
-              }
-
-              buildTypes {
-                  release {
-                      signingConfig signingConfigs.release
-                  }
-              }
-          }
-
-          flutter {
-              source '../..'
-          }
-
-          dependencies {
-              implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+              keystoreProperties.load(FileInputStream(keystorePropertiesFile))
           }
           """
-          groovy_path.write_text(groovy_code)
-          print("--- Successfully converted to Groovy build.gradle ---")
+              text = re.sub(r'(?m)^(android\s*\{)', loader + r'\n\1', text, count=1)
+
+          # Signing config ko android block ke andar add karo
+          if "signingConfigs" not in text:
+              signing = """
+                  signingConfigs {
+                      create("release") {
+                          keyAlias = keystoreProperties["keyAlias"] as String?
+                          keyPassword = keystoreProperties["keyPassword"] as String?
+                          storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                          storePassword = keystoreProperties["storePassword"] as String?
+                      }
+                  }
+              """
+              text = text.replace("android {", "android {" + signing, 1)
+
+          # Build types ko release ke liye set karo
+          text = text.replace(
+              'signingConfig = signingConfigs.getByName("debug")',
+              'signingConfig = signingConfigs.getByName("release")'
+          )
+          if 'signingConfig = signingConfigs.getByName("release")' not in text:
+              # Agar default debug config nahi hai, toh buildTypes block ke andar daalo
+              text = re.sub(
+                  r'(buildTypes\s*\{[^}]*release\s*\{)',
+                  r'\1\n            signingConfig = signingConfigs.getByName("release")',
+                  text
+              )
+
+          build.write_text(text)
+          print("--- build.gradle.kts successfully patched ---")
           PY
 
       - name: Setup Release Keystore
