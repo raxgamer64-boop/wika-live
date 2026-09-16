@@ -29,7 +29,8 @@ jobs:
         run: |
           set -e
           cp main.dart app/lib/main.dart
-          test -f google-services.json && cp google-services.json app/android/app/google-services.json || true
+          test -f google-services.json
+          cp google-services.json app/android/app/google-services.json
 
       - name: Configure Firebase Google Services
         working-directory: app
@@ -38,16 +39,24 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          p = Path('android/settings.gradle.kts')
+          p = Path("android/settings.gradle.kts")
           s = p.read_text()
           if 'com.google.gms.google-services' not in s:
-              s = s.replace('plugins {', 'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false', 1)
+              s = s.replace(
+                  'plugins {',
+                  'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false',
+                  1,
+              )
           p.write_text(s)
 
-          p = Path('android/app/build.gradle.kts')
+          p = Path("android/app/build.gradle.kts")
           s = p.read_text()
           if 'id("com.google.gms.google-services")' not in s:
-              s = s.replace('plugins {', 'plugins {\n    id("com.google.gms.google-services")', 1)
+              s = s.replace(
+                  'plugins {',
+                  'plugins {\n    id("com.google.gms.google-services")',
+                  1,
+              )
           p.write_text(s)
           PY
 
@@ -67,21 +76,28 @@ jobs:
         working-directory: app
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASS }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -e
 
-          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
             echo "ERROR: Android signing secrets are missing."
+            echo "Required GitHub Secrets:"
+            echo "  KEYSTORE_BASE64"
+            echo "  KEYSTORE_PASS"
+            echo "  KEY_ALIAS"
+            echo "  KEY_PASSWORD"
             exit 1
           fi
 
           echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
 
+          test -s android/app/upload-keystore.jks
+
           cat > android/key.properties <<EOF
-          storePassword=$KEYSTORE_PASSWORD
+          storePassword=$KEYSTORE_PASS
           keyPassword=$KEY_PASSWORD
           keyAlias=$KEY_ALIAS
           storeFile=upload-keystore.jks
@@ -90,50 +106,54 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          p = Path('android/app/build.gradle.kts')
+          p = Path("android/app/build.gradle.kts")
           s = p.read_text()
 
-          if 'import java.util.Properties' not in s:
-              s = 'import java.util.Properties\n\n' + s
-
-          signing_configs = """signingConfigs {
-              create("release") {
-                  val propsFile = rootProject.file("key.properties")
-                  val props = Properties()
-                  if (propsFile.exists()) {
-                      propsFile.inputStream().use { props.load(it) }
-                      storeFile = rootProject.file(props.getProperty("storeFile"))
-                      storePassword = props.getProperty("storePassword")
-                      keyAlias = props.getProperty("keyAlias")
-                      keyPassword = props.getProperty("keyPassword")
+          marker = "android {"
+          if "create("release")" not in s:
+              block = '''android {
+              signingConfigs {
+                  create("release") {
+                      val propsFile = rootProject.file("key.properties")
+                      val props = java.util.Properties()
+                      if (propsFile.exists()) {
+                          propsFile.inputStream().use { props.load(it) }
+                      }
+                      storeFile = file(props["storeFile"]?.toString() ?: "upload-keystore.jks")
+                      storePassword = props["storePassword"]?.toString()
+                      keyAlias = props["keyAlias"]?.toString()
+                      keyPassword = props["keyPassword"]?.toString()
                   }
-              }
-          }
-          """
-
-          if 'signingConfigs {' not in s:
-              s = s.replace('android {', 'android {\n    ' + signing_configs, 1)
+              }'''
+              s = s.replace(marker, block, 1)
 
           if 'signingConfig = signingConfigs.getByName("release")' not in s:
               s = s.replace(
-                  'release {',
-                  'release {\n            signingConfig = signingConfigs.getByName("release")',
+                  'buildTypes {',
+                  '''buildTypes {
+                  getByName("release") {
+                      signingConfig = signingConfigs.getByName("release")
+                  }''',
                   1,
               )
 
           p.write_text(s)
           PY
 
-          echo '--- build.gradle.kts ---'
-          sed -n '1,100p' android/app/build.gradle.kts
+          echo "Release signing configured."
+          keytool -list             -keystore android/app/upload-keystore.jks             -storepass "$KEYSTORE_PASS"             -alias "$KEY_ALIAS"
 
       - name: Analyze Dart
         working-directory: app
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        run: |
+          set -e
+          flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build release APK
         working-directory: app
-        run: flutter build apk --release
+        run: |
+          set -e
+          flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
