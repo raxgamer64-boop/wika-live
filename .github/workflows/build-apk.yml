@@ -23,7 +23,10 @@ jobs:
       - name: Create Flutter project
         run: |
           set -e
-          flutter create --org com.example --project-name wika_live app
+          flutter create \
+            --org com.example \
+            --project-name wika_live \
+            app
 
       - name: Copy app files
         run: |
@@ -44,25 +47,30 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
+          # settings.gradle.kts
           p = Path("android/settings.gradle.kts")
           s = p.read_text()
 
           if 'com.google.gms.google-services' not in s:
               s = s.replace(
                   'plugins {',
-                  'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false',
+                  'plugins {\n'
+                  '    id("com.google.gms.google-services") '
+                  'version "4.4.2" apply false',
                   1,
               )
 
           p.write_text(s)
 
+          # app/build.gradle.kts
           p = Path("android/app/build.gradle.kts")
           s = p.read_text()
 
           if 'id("com.google.gms.google-services")' not in s:
               s = s.replace(
                   'plugins {',
-                  'plugins {\n    id("com.google.gms.google-services")',
+                  'plugins {\n'
+                  '    id("com.google.gms.google-services")',
                   1,
               )
 
@@ -158,12 +166,17 @@ jobs:
           p = Path("android/app/build.gradle.kts")
           s = p.read_text()
 
+          # Add java.util.Properties import correctly
+          if "import java.util.Properties" not in s:
+              s = "import java.util.Properties\n\n" + s
+
+          # Add release signing configuration
           if 'create("release")' not in s:
               signing_block = '''
               signingConfigs {
                   create("release") {
                       val propsFile = rootProject.file("key.properties")
-                      val props = java.util.Properties()
+                      val props = Properties()
 
                       if (propsFile.exists()) {
                           propsFile.inputStream().use {
@@ -173,7 +186,7 @@ jobs:
 
                       storeFile = file(
                           props["storeFile"]?.toString()
-                          ?: "release-key.jks"
+                              ?: "release-key.jks"
                       )
 
                       storePassword =
@@ -191,10 +204,11 @@ jobs:
 
               s = s.replace(
                   'android {',
-                  'android {' + signing_block,
+                  'android {\n' + signing_block,
                   1,
               )
 
+          # Make release build use the signing configuration
           if 'signingConfig = signingConfigs.getByName("release")' not in s:
               release_block = '''
                   getByName("release") {
@@ -205,7 +219,7 @@ jobs:
 
               s = s.replace(
                   'buildTypes {',
-                  'buildTypes {' + release_block,
+                  'buildTypes {\n' + release_block,
                   1,
               )
 
@@ -214,10 +228,14 @@ jobs:
 
           echo "Release signing configured."
 
+          echo "Checking keystore..."
+
           keytool -list \
             -keystore android/app/release-key.jks \
             -storepass "$STORE_PASS" \
             -alias "$KEY_ALIAS"
+
+          echo "Keystore verification successful."
 
       - name: Analyze Dart
         working-directory: app
@@ -229,7 +247,18 @@ jobs:
         working-directory: app
         run: |
           set -e
+
           flutter build apk --release
+
+      - name: Verify APK
+        run: |
+          set -e
+
+          test -f app/build/app/outputs/flutter-apk/app-release.apk
+
+          ls -lh app/build/app/outputs/flutter-apk/app-release.apk
+
+          echo "APK created successfully."
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
