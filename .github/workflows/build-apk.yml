@@ -29,7 +29,7 @@ jobs:
             --project-name wika_live \
             app
 
-      - name: Configure Kotlin version
+      - name: Configure Android Kotlin
         working-directory: app
         run: |
           set -e
@@ -38,18 +38,20 @@ jobs:
           from pathlib import Path
           import re
 
+          # ---------------------------------------
+          # settings.gradle.kts
+          # ---------------------------------------
           p = Path("android/settings.gradle.kts")
           s = p.read_text()
 
-          # Force a Kotlin version compatible with current Firebase libraries.
-          s = re.sub(
-              r'(id\("org\.jetbrains\.kotlin\.android"\)\s+version\s+")[^"]+(")',
-              r'\g<1>2.4.20\g<2>',
-              s,
-          )
-
-          # If Kotlin plugin is not present, add it.
-          if 'id("org.jetbrains.kotlin.android")' not in s:
+          # Kotlin 2.4.20
+          if 'id("org.jetbrains.kotlin.android")' in s:
+              s = re.sub(
+                  r'(id\("org\.jetbrains\.kotlin\.android"\)\s+version\s+")[^"]+(")',
+                  r'\g<1>2.4.20\g<2>',
+                  s,
+              )
+          else:
               s = s.replace(
                   'plugins {',
                   'plugins {\n'
@@ -58,37 +60,7 @@ jobs:
                   1,
               )
 
-          p.write_text(s)
-
-          print("Kotlin Gradle Plugin configured: 2.4.20")
-          PY
-
-          echo "Checking Kotlin configuration..."
-          grep -n "org.jetbrains.kotlin.android" android/settings.gradle.kts || true
-
-      - name: Copy app files
-        run: |
-          set -e
-
-          test -f main.dart
-          cp main.dart app/lib/main.dart
-
-          test -f google-services.json
-          mkdir -p app/android/app
-          cp google-services.json app/android/app/google-services.json
-
-      - name: Configure Firebase Google Services
-        working-directory: app
-        run: |
-          set -e
-
-          python3 - <<'PY'
-          from pathlib import Path
-
-          # Configure settings.gradle.kts
-          p = Path("android/settings.gradle.kts")
-          s = p.read_text()
-
+          # Google services plugin
           if 'com.google.gms.google-services' not in s:
               s = s.replace(
                   'plugins {',
@@ -100,10 +72,17 @@ jobs:
 
           p.write_text(s)
 
-          # Configure app/build.gradle.kts
+          # ---------------------------------------
+          # app/build.gradle.kts
+          # ---------------------------------------
           p = Path("android/app/build.gradle.kts")
           s = p.read_text()
 
+          # Properties import
+          if "import java.util.Properties" not in s:
+              s = "import java.util.Properties\n\n" + s
+
+          # Google services plugin
           if 'id("com.google.gms.google-services")' not in s:
               s = s.replace(
                   'plugins {',
@@ -112,10 +91,70 @@ jobs:
                   1,
               )
 
+          # ---------------------------------------
+          # Remove old Kotlin jvmTarget DSL
+          # ---------------------------------------
+          s = re.sub(
+              r'\n\s*kotlinOptions\s*\{.*?jvmTarget\s*=\s*JavaVersion\.VERSION_11\.toString\(\).*?\}',
+              '',
+              s,
+              flags=re.DOTALL,
+          )
+
+          # Remove any remaining simple jvmTarget assignment
+          s = re.sub(
+              r'\n\s*jvmTarget\s*=\s*[^\n]+',
+              '',
+              s,
+          )
+
+          # ---------------------------------------
+          # Add new Kotlin compilerOptions DSL
+          # ---------------------------------------
+          if "compilerOptions {" not in s:
+              compiler_block = '''
+              
+              kotlin {
+                  compilerOptions {
+                      jvmTarget.set(
+                          org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+                      )
+                  }
+              }
+              
+              '''
+
+              # Put it before android {
+              s = s.replace(
+                  'android {',
+                  compiler_block + '\nandroid {',
+                  1,
+              )
+
           p.write_text(s)
 
-          print("Firebase Google Services configured.")
+          print("Kotlin 2.4.20 configured.")
+          print("New compilerOptions DSL configured.")
           PY
+
+          echo "---- Kotlin plugin ----"
+          grep -n "org.jetbrains.kotlin.android" \
+            android/settings.gradle.kts || true
+
+          echo "---- compilerOptions ----"
+          grep -n -A8 -B2 "compilerOptions" \
+            android/app/build.gradle.kts || true
+
+      - name: Copy app files
+        run: |
+          set -e
+
+          test -f main.dart
+          cp main.dart app/lib/main.dart
+
+          test -f google-services.json
+          mkdir -p app/android/app
+          cp google-services.json app/android/app/google-services.json
 
       - name: Add packages
         working-directory: app
@@ -189,7 +228,8 @@ jobs:
         run: |
           set -e
 
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
+          echo "$KEYSTORE_BASE64" | base64 --decode \
+            > android/app/release-key.jks
 
           test -s android/app/release-key.jks
 
@@ -206,13 +246,10 @@ jobs:
           p = Path("android/app/build.gradle.kts")
           s = p.read_text()
 
-          # Import Properties correctly.
-          if "import java.util.Properties" not in s:
-              s = "import java.util.Properties\n\n" + s
-
-          # Add release signing configuration.
+          # Release signing configuration
           if 'create("release")' not in s:
               signing_block = '''
+              
               signingConfigs {
                   create("release") {
                       val propsFile = rootProject.file("key.properties")
@@ -239,7 +276,7 @@ jobs:
                           props["keyPassword"]?.toString()
                   }
               }
-
+              
               '''
 
               s = s.replace(
@@ -248,13 +285,15 @@ jobs:
                   1,
               )
 
-          # Use release signing configuration.
-          if 'signingConfig = signingConfigs.getByName("release")' not in s:
+          # Release build uses signing config
+          if 'signingConfigs.getByName("release")' not in s:
               release_block = '''
+              
                   getByName("release") {
                       signingConfig =
                           signingConfigs.getByName("release")
                   }
+              
               '''
 
               s = s.replace(
@@ -299,7 +338,8 @@ jobs:
 
           test -f app/build/app/outputs/flutter-apk/app-release.apk
 
-          ls -lh app/build/app/outputs/flutter-apk/app-release.apk
+          ls -lh \
+            app/build/app/outputs/flutter-apk/app-release.apk
 
           echo "APK created successfully."
 
