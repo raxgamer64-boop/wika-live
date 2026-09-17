@@ -29,7 +29,7 @@ jobs:
             --project-name wika_live \
             app
 
-      - name: Configure Android Kotlin
+      - name: Configure Android Kotlin and Signing
         working-directory: app
         run: |
           set -e
@@ -38,9 +38,9 @@ jobs:
           from pathlib import Path
           import re
 
-          # ---------------------------------------
+          # ==========================================
           # settings.gradle.kts
-          # ---------------------------------------
+          # ==========================================
           p = Path("android/settings.gradle.kts")
           s = p.read_text()
 
@@ -54,27 +54,25 @@ jobs:
           else:
               s = s.replace(
                   'plugins {',
-                  'plugins {\n'
-                  '    id("org.jetbrains.kotlin.android") '
-                  'version "2.4.20" apply false',
+                  '''plugins {
+              id("org.jetbrains.kotlin.android") version "2.4.20" apply false''',
                   1,
               )
 
-          # Google services plugin
+          # Google Services plugin
           if 'com.google.gms.google-services' not in s:
               s = s.replace(
                   'plugins {',
-                  'plugins {\n'
-                  '    id("com.google.gms.google-services") '
-                  'version "4.4.2" apply false',
+                  '''plugins {
+              id("com.google.gms.google-services") version "4.4.2" apply false''',
                   1,
               )
 
           p.write_text(s)
 
-          # ---------------------------------------
-          # app/build.gradle.kts
-          # ---------------------------------------
+          # ==========================================
+          # android/app/build.gradle.kts
+          # ==========================================
           p = Path("android/app/build.gradle.kts")
           s = p.read_text()
 
@@ -82,67 +80,143 @@ jobs:
           if "import java.util.Properties" not in s:
               s = "import java.util.Properties\n\n" + s
 
-          # Google services plugin
+          # Google Services plugin
           if 'id("com.google.gms.google-services")' not in s:
               s = s.replace(
                   'plugins {',
-                  'plugins {\n'
-                  '    id("com.google.gms.google-services")',
+                  '''plugins {
+              id("com.google.gms.google-services")''',
                   1,
               )
 
-          # ---------------------------------------
-          # Remove old Kotlin jvmTarget DSL
-          # ---------------------------------------
+          # ==========================================
+          # Remove old Kotlin jvmTarget configuration
+          # ==========================================
           s = re.sub(
-              r'\n\s*kotlinOptions\s*\{.*?jvmTarget\s*=\s*JavaVersion\.VERSION_11\.toString\(\).*?\}',
+              r'\n\s*kotlinOptions\s*\{.*?\}',
               '',
               s,
               flags=re.DOTALL,
           )
 
-          # Remove any remaining simple jvmTarget assignment
           s = re.sub(
               r'\n\s*jvmTarget\s*=\s*[^\n]+',
               '',
               s,
           )
 
-          # ---------------------------------------
-          # Add new Kotlin compilerOptions DSL
-          # ---------------------------------------
+          # ==========================================
+          # Add Kotlin compilerOptions
+          # ==========================================
           if "compilerOptions {" not in s:
               compiler_block = '''
-              
-              kotlin {
-                  compilerOptions {
-                      jvmTarget.set(
-                          org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
-                      )
-                  }
+          
+          kotlin {
+              compilerOptions {
+                  jvmTarget.set(
+                      org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+                  )
               }
-              
-              '''
+          }
+          
+          '''
 
-              # Put it before android {
               s = s.replace(
                   'android {',
                   compiler_block + '\nandroid {',
                   1,
               )
 
+          # ==========================================
+          # Add release signing configuration
+          # ==========================================
+          if 'create("release")' not in s:
+              signing_block = '''
+          
+              signingConfigs {
+                  create("release") {
+                      val propsFile = rootProject.file("key.properties")
+                      val props = Properties()
+
+                      if (propsFile.exists()) {
+                          propsFile.inputStream().use {
+                              props.load(it)
+                          }
+                      }
+
+                      storeFile = file(
+                          props["storeFile"]?.toString()
+                              ?: "release-key.jks"
+                      )
+
+                      storePassword =
+                          props["storePassword"]?.toString()
+
+                      keyAlias =
+                          props["keyAlias"]?.toString()
+
+                      keyPassword =
+                          props["keyPassword"]?.toString()
+                  }
+              }
+          
+          '''
+
+              s = s.replace(
+                  'android {',
+                  'android {\n' + signing_block,
+                  1,
+              )
+
+          # ==========================================
+          # CRITICAL FIX:
+          # Replace Flutter's default DEBUG release
+          # signing with our REAL release keystore.
+          # ==========================================
+          s = s.replace(
+              'signingConfig = signingConfigs.getByName("debug")',
+              'signingConfig = signingConfigs.getByName("release")'
+          )
+
+          # ==========================================
+          # Make absolutely sure release uses release key
+          # ==========================================
+          if 'signingConfigs.getByName("release")' not in s:
+              s = s.replace(
+                  'buildTypes {',
+                  '''buildTypes {
+                      getByName("release") {
+                          signingConfig =
+                              signingConfigs.getByName("release")
+                      }
+                  ''',
+                  1,
+              )
+
           p.write_text(s)
 
+          print("==========================================")
+          print("Android configuration completed.")
           print("Kotlin 2.4.20 configured.")
-          print("New compilerOptions DSL configured.")
+          print("Google Services configured.")
+          print("Release signing configured.")
+          print("DEBUG release signing replaced.")
+          print("==========================================")
           PY
 
-          echo "---- Kotlin plugin ----"
+          echo ""
+          echo "===== Kotlin plugin ====="
           grep -n "org.jetbrains.kotlin.android" \
             android/settings.gradle.kts || true
 
-          echo "---- compilerOptions ----"
-          grep -n -A8 -B2 "compilerOptions" \
+          echo ""
+          echo "===== Signing references ====="
+          grep -n -A5 -B3 "signingConfig" \
+            android/app/build.gradle.kts || true
+
+          echo ""
+          echo "===== Release build type ====="
+          grep -n -A12 -B2 "buildTypes" \
             android/app/build.gradle.kts || true
 
       - name: Copy app files
@@ -155,6 +229,8 @@ jobs:
           test -f google-services.json
           mkdir -p app/android/app
           cp google-services.json app/android/app/google-services.json
+
+          echo "App files copied successfully."
 
       - name: Add packages
         working-directory: app
@@ -218,7 +294,7 @@ jobs:
           echo ""
           echo "All Android signing secrets are available."
 
-      - name: Configure release signing
+      - name: Configure release keystore
         working-directory: app
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -240,81 +316,19 @@ jobs:
           storeFile=release-key.jks
           EOF
 
-          python3 - <<'PY'
-          from pathlib import Path
+          echo "Keystore file created."
 
-          p = Path("android/app/build.gradle.kts")
-          s = p.read_text()
+          echo ""
+          echo "===== VERIFY RELEASE KEYSTORE ====="
 
-          # Release signing configuration
-          if 'create("release")' not in s:
-              signing_block = '''
-              
-              signingConfigs {
-                  create("release") {
-                      val propsFile = rootProject.file("key.properties")
-                      val props = Properties()
-
-                      if (propsFile.exists()) {
-                          propsFile.inputStream().use {
-                              props.load(it)
-                          }
-                      }
-
-                      storeFile = file(
-                          props["storeFile"]?.toString()
-                              ?: "release-key.jks"
-                      )
-
-                      storePassword =
-                          props["storePassword"]?.toString()
-
-                      keyAlias =
-                          props["keyAlias"]?.toString()
-
-                      keyPassword =
-                          props["keyPassword"]?.toString()
-                  }
-              }
-              
-              '''
-
-              s = s.replace(
-                  'android {',
-                  'android {\n' + signing_block,
-                  1,
-              )
-
-          # Release build uses signing config
-          if 'signingConfigs.getByName("release")' not in s:
-              release_block = '''
-              
-                  getByName("release") {
-                      signingConfig =
-                          signingConfigs.getByName("release")
-                  }
-              
-              '''
-
-              s = s.replace(
-                  'buildTypes {',
-                  'buildTypes {\n' + release_block,
-                  1,
-              )
-
-          p.write_text(s)
-          PY
-
-          echo "Release signing configured."
-
-          echo "Checking keystore..."
-
-          keytool -list \
+          keytool -list -v \
             -keystore android/app/release-key.jks \
             -storepass "$STORE_PASS" \
-            -alias "$KEY_ALIAS"
+            -alias "$KEY_ALIAS" \
+            | grep -E "Alias name:|Entry type:|SHA1:|SHA-256:"
 
-          echo "Keystore verification successful."
+          echo ""
+          echo "Release keystore verification successful."
 
       - name: Analyze Dart
         working-directory: app
@@ -330,18 +344,69 @@ jobs:
         run: |
           set -e
 
+          flutter clean
+          flutter pub get
+
           flutter build apk --release
 
       - name: Verify APK
+        working-directory: app
         run: |
           set -e
 
-          test -f app/build/app/outputs/flutter-apk/app-release.apk
+          APK="build/app/outputs/flutter-apk/app-release.apk"
 
-          ls -lh \
-            app/build/app/outputs/flutter-apk/app-release.apk
+          test -f "$APK"
 
-          echo "APK created successfully."
+          echo ""
+          echo "=========================================="
+          echo "RELEASE APK CREATED"
+          echo "=========================================="
+
+          ls -lh "$APK"
+
+          echo ""
+          echo "APK path:"
+          echo "$APK"
+
+      - name: Verify APK signing certificate
+        working-directory: app
+        run: |
+          set -e
+
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+
+          echo ""
+          echo "=========================================="
+          echo "CHECKING APK SIGNATURE"
+          echo "=========================================="
+
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" \
+            -name apksigner \
+            -type f \
+            | sort -V \
+            | tail -1)
+
+          if [ -z "$APKSIGNER" ]; then
+            echo "ERROR: apksigner not found."
+            exit 1
+          fi
+
+          echo "Using:"
+          echo "$APKSIGNER"
+
+          echo ""
+          echo "===== APK CERTIFICATE ====="
+
+          "$APKSIGNER" verify \
+            --verbose \
+            --print-certs \
+            "$APK"
+
+          echo ""
+          echo "=========================================="
+          echo "APK SIGNATURE VERIFICATION COMPLETED"
+          echo "=========================================="
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
