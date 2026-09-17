@@ -23,10 +23,48 @@ jobs:
       - name: Create Flutter project
         run: |
           set -e
+
           flutter create \
             --org com.example \
             --project-name wika_live \
             app
+
+      - name: Configure Kotlin version
+        working-directory: app
+        run: |
+          set -e
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path("android/settings.gradle.kts")
+          s = p.read_text()
+
+          # Force a Kotlin version compatible with current Firebase libraries.
+          s = re.sub(
+              r'(id\("org\.jetbrains\.kotlin\.android"\)\s+version\s+")[^"]+(")',
+              r'\g<1>2.4.20\g<2>',
+              s,
+          )
+
+          # If Kotlin plugin is not present, add it.
+          if 'id("org.jetbrains.kotlin.android")' not in s:
+              s = s.replace(
+                  'plugins {',
+                  'plugins {\n'
+                  '    id("org.jetbrains.kotlin.android") '
+                  'version "2.4.20" apply false',
+                  1,
+              )
+
+          p.write_text(s)
+
+          print("Kotlin Gradle Plugin configured: 2.4.20")
+          PY
+
+          echo "Checking Kotlin configuration..."
+          grep -n "org.jetbrains.kotlin.android" android/settings.gradle.kts || true
 
       - name: Copy app files
         run: |
@@ -47,7 +85,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          # settings.gradle.kts
+          # Configure settings.gradle.kts
           p = Path("android/settings.gradle.kts")
           s = p.read_text()
 
@@ -62,7 +100,7 @@ jobs:
 
           p.write_text(s)
 
-          # app/build.gradle.kts
+          # Configure app/build.gradle.kts
           p = Path("android/app/build.gradle.kts")
           s = p.read_text()
 
@@ -75,6 +113,8 @@ jobs:
               )
 
           p.write_text(s)
+
+          print("Firebase Google Services configured.")
           PY
 
       - name: Add packages
@@ -166,11 +206,11 @@ jobs:
           p = Path("android/app/build.gradle.kts")
           s = p.read_text()
 
-          # Add java.util.Properties import correctly
+          # Import Properties correctly.
           if "import java.util.Properties" not in s:
               s = "import java.util.Properties\n\n" + s
 
-          # Add release signing configuration
+          # Add release signing configuration.
           if 'create("release")' not in s:
               signing_block = '''
               signingConfigs {
@@ -208,7 +248,7 @@ jobs:
                   1,
               )
 
-          # Make release build use the signing configuration
+          # Use release signing configuration.
           if 'signingConfig = signingConfigs.getByName("release")' not in s:
               release_block = '''
                   getByName("release") {
@@ -241,7 +281,10 @@ jobs:
         working-directory: app
         run: |
           set -e
-          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+          flutter analyze \
+            --no-fatal-infos \
+            --no-fatal-warnings
 
       - name: Build release APK
         working-directory: app
