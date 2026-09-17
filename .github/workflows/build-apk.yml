@@ -243,7 +243,7 @@ jobs:
           flutter pub add firebase_storage
           flutter pub add image_picker
           flutter pub add google_sign_in:7.2.0
-
+          flutter pub add zego_uikit_prebuilt_live_streaming
           flutter pub get
 
       - name: Check signing secrets
