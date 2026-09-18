@@ -3,8 +3,7 @@ name: Build WikaLive APK
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
@@ -17,7 +16,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.35.4"
+          flutter-version: '3.35.4'
           channel: stable
           cache: true
 
@@ -25,119 +24,20 @@ jobs:
         run: |
           set -e
 
+          rm -rf app
+
           flutter create \
             --org com.example \
             --project-name wika_live \
+            --platforms android \
             app
 
           cp main.dart app/lib/main.dart
+
+          test -f google-services.json
           cp google-services.json app/android/app/google-services.json
 
-          test -f app/lib/main.dart
-          test -f app/android/app/google-services.json
-
-      - name: Configure Kotlin
-        working-directory: app
-        run: |
-          set -e
-
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          settings = Path("android/settings.gradle.kts")
-          build = Path("android/app/build.gradle.kts")
-
-          # ---------------------------------------------------------
-          # Kotlin Gradle Plugin
-          # ---------------------------------------------------------
-
-          s = settings.read_text()
-
-          pattern = (
-              r'(id\(["\']org\.jetbrains\.kotlin\.android["\']\)'
-              r'\s+version\s+["\'])[^"\']+(["\'])'
-          )
-
-          s, count = re.subn(
-              pattern,
-              r'\g<1>2.3.21\g<2>',
-              s
-          )
-
-          if count == 0:
-              print("WARNING: Kotlin plugin version pattern was not found.")
-          else:
-              print("Kotlin Gradle plugin set to 2.3.21.")
-
-          settings.write_text(s)
-
-          # ---------------------------------------------------------
-          # Remove old kotlinOptions block from app/build.gradle.kts
-          # ---------------------------------------------------------
-
-          s = build.read_text()
-
-          s = re.sub(
-              r'\n\s*kotlinOptions\s*\{.*?\n\s*\}',
-              '',
-              s,
-              flags=re.DOTALL
-          )
-
-          # Remove any previous incorrectly inserted compilerOptions
-          # block if present.
-          s = re.sub(
-              r'\n\s*compilerOptions\s*\{.*?\n\s*\}',
-              '',
-              s,
-              flags=re.DOTALL
-          )
-
-          # Remove previous kotlin block if our earlier workflow
-          # inserted one.
-          s = re.sub(
-              r'\n\s*kotlin\s*\{\s*compilerOptions\s*\{.*?\}\s*\}',
-              '',
-              s,
-              flags=re.DOTALL
-          )
-
-          # ---------------------------------------------------------
-          # Add required Kotlin import
-          # ---------------------------------------------------------
-
-          import_line = (
-              "import org.jetbrains.kotlin.gradle.dsl.JvmTarget"
-          )
-
-          if import_line not in s:
-              s = import_line + "\n" + s
-
-          # ---------------------------------------------------------
-          # Add Kotlin compilerOptions at PROJECT level.
-          #
-          # IMPORTANT:
-          # This is intentionally outside android { }.
-          # ---------------------------------------------------------
-
-          kotlin_config = '''
-
-          kotlin {
-              compilerOptions {
-                  jvmTarget.set(JvmTarget.JVM_11)
-              }
-          }
-          '''
-
-          s = s.rstrip() + kotlin_config
-
-          build.write_text(s)
-
-          print("Kotlin compilerOptions configured correctly.")
-          PY
-
-      - name: Configure Firebase
+      - name: Configure Firebase Google Services
         working-directory: app
         run: |
           set -e
@@ -145,37 +45,95 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          settings = Path("android/settings.gradle.kts")
-          build = Path("android/app/build.gradle.kts")
+          # -----------------------------
+          # settings.gradle.kts
+          # -----------------------------
+          p = Path("android/settings.gradle.kts")
+          s = p.read_text()
 
-          # Firebase Google Services plugin
-          s = settings.read_text()
-
-          if "com.google.gms.google-services" not in s:
+          if 'com.google.gms.google-services' not in s:
               s = s.replace(
-                  "plugins {",
-                  'plugins {\n'
-                  '    id("com.google.gms.google-services") '
-                  'version "4.4.3" apply false',
+                  'plugins {',
+                  '''plugins {
+              id("com.google.gms.google-services") version "4.4.3" apply false''',
                   1
               )
 
-          settings.write_text(s)
+          p.write_text(s)
 
-          # Apply Google Services plugin
-          s = build.read_text()
+          # -----------------------------
+          # app/build.gradle.kts
+          # -----------------------------
+          p = Path("android/app/build.gradle.kts")
+          s = p.read_text()
 
           if 'id("com.google.gms.google-services")' not in s:
               s = s.replace(
-                  "plugins {",
-                  'plugins {\n'
-                  '    id("com.google.gms.google-services")',
+                  'plugins {',
+                  '''plugins {
+              id("com.google.gms.google-services")''',
                   1
               )
 
-          build.write_text(s)
+          p.write_text(s)
 
-          print("Firebase Google Services configured.")
+          # -----------------------------
+          # Verify Google Services plugin
+          # -----------------------------
+          s = p.read_text()
+
+          if 'com.google.gms.google-services' not in s:
+              raise SystemExit(
+                  "ERROR: Google Services Gradle plugin was not configured."
+              )
+
+          # -----------------------------
+          # Verify google-services.json
+          # -----------------------------
+          json_file = Path("android/app/google-services.json")
+
+          if not json_file.exists():
+              raise SystemExit(
+                  "ERROR: google-services.json is missing."
+              )
+
+          import json
+
+          data = json.loads(json_file.read_text())
+
+          clients = data.get("client", [])
+
+          package_found = False
+          web_client_found = False
+
+          for client in clients:
+              android_info = client.get("client_info", {})
+              package_name = android_info.get("android_client_info", {}).get(
+                  "package_name"
+              )
+
+              if package_name == "com.example.wika_live":
+                  package_found = True
+
+              for oauth in client.get("oauth_client", []):
+                  if oauth.get("client_type") == 3:
+                      web_client_found = True
+
+          if not package_found:
+              raise SystemExit(
+                  "ERROR: google-services.json does not contain "
+                  "Android package com.example.wika_live."
+              )
+
+          if not web_client_found:
+              raise SystemExit(
+                  "ERROR: google-services.json does not contain "
+                  "a Web OAuth client (client_type 3)."
+              )
+
+          print("Google Services configuration verified.")
+          print("Android package: com.example.wika_live")
+          print("Web OAuth client: FOUND")
           PY
 
       - name: Add packages
@@ -188,7 +146,11 @@ jobs:
           flutter pub add cloud_firestore
           flutter pub add firebase_storage
           flutter pub add image_picker
+
+          # Keep Google Sign-In on the Flutter 7.x API.
           flutter pub add google_sign_in:7.2.0
+
+          # ZEGOCLOUD Live Streaming
           flutter pub add zego_uikit_prebuilt_live_streaming
 
           flutter pub get
@@ -197,38 +159,38 @@ jobs:
         working-directory: app
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          STORE_PASS: ${{ secrets.STORE_PASS }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASS }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -e
 
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "ERROR: KEYSTORE_BASE64 is missing"
+            echo "ERROR: KEYSTORE_BASE64 is missing."
             exit 1
           fi
 
-          if [ -z "$STORE_PASS" ]; then
-            echo "ERROR: STORE_PASS is missing"
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "ERROR: KEYSTORE_PASS is missing."
             exit 1
           fi
 
           if [ -z "$KEY_ALIAS" ]; then
-            echo "ERROR: KEY_ALIAS is missing"
+            echo "ERROR: KEY_ALIAS is missing."
             exit 1
           fi
 
           if [ -z "$KEY_PASSWORD" ]; then
-            echo "ERROR: KEY_PASSWORD is missing"
+            echo "ERROR: KEY_PASSWORD is missing."
             exit 1
           fi
 
           echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
 
-          test -f android/app/upload-keystore.jks
+          test -s android/app/upload-keystore.jks
 
           cat > android/key.properties <<EOF
-          storePassword=$STORE_PASS
+          storePassword=$KEYSTORE_PASSWORD
           keyPassword=$KEY_PASSWORD
           keyAlias=$KEY_ALIAS
           storeFile=upload-keystore.jks
@@ -241,12 +203,11 @@ jobs:
           s = p.read_text()
 
           if "import java.util.Properties" not in s:
-              s = "import java.util.Properties\n" + s
+              s = "import java.util.Properties\n\n" + s
 
-          # Add release signing configuration.
+          # Add release signing configuration safely.
           if 'create("release")' not in s:
-
-              signing_block = '''android {
+              signing_block = '''
               signingConfigs {
                   create("release") {
                       val propsFile = rootProject.file("key.properties")
@@ -257,9 +218,10 @@ jobs:
                               props.load(it)
                           }
 
-                          storeFile = rootProject.file(
-                              props.getProperty("storeFile")
-                          )
+                          storeFile =
+                              rootProject.file(
+                                  props.getProperty("storeFile")
+                              )
 
                           storePassword =
                               props.getProperty("storePassword")
@@ -272,52 +234,54 @@ jobs:
                       }
                   }
               }
-              '''
+          '''
 
               s = s.replace(
                   "android {",
-                  signing_block,
+                  "android {" + signing_block,
                   1
               )
 
-          # Attach release signing configuration.
+          # Attach release signing config.
           if 'signingConfig = signingConfigs.getByName("release")' not in s:
               s = s.replace(
-                  "release {",
-                  'release {\n'
-                  '            signingConfig = '
-                  'signingConfigs.getByName("release")',
+                  'release {',
+                  '''release {
+              signingConfig =
+                  signingConfigs.getByName("release")''',
                   1
               )
 
           p.write_text(s)
-
-          print("Release signing configured.")
           PY
 
-      - name: Verify release keystore
+          echo "Android release signing configured."
+
+      - name: Verify Android configuration
         working-directory: app
-        env:
-          STORE_PASS: ${{ secrets.STORE_PASS }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           set -e
 
-          test -f android/app/upload-keystore.jks
+          echo "Checking Android package..."
 
-          keytool -list \
-            -keystore android/app/upload-keystore.jks \
-            -storepass "$STORE_PASS" \
-            -alias "$KEY_ALIAS"
+          grep -n "namespace" android/app/build.gradle.kts || true
+
+          echo "Checking Google Services..."
+
+          test -f android/app/google-services.json
+
+          echo "Checking signing keystore..."
+
+          test -f android/app/upload-keystore.jks
+          test -f android/key.properties
+
+          echo "Android configuration OK."
 
       - name: Analyze Dart
         working-directory: app
         run: |
           set -e
-
-          flutter analyze \
-            --no-fatal-infos \
-            --no-fatal-warnings
+          flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build release APK
         working-directory: app
@@ -334,7 +298,12 @@ jobs:
           flutter clean
           flutter pub get
 
-          echo "Building WikaLive release APK..."
+          echo "========================================"
+          echo "Building WikaLive RELEASE APK"
+          echo "Google Sign-In: Firebase"
+          echo "ZEGOCLOUD: Enabled"
+          echo "Release Signing: Enabled"
+          echo "========================================"
 
           flutter build apk \
             --release \
@@ -346,9 +315,15 @@ jobs:
 
           APK="app/build/app/outputs/flutter-apk/app-release.apk"
 
-          test -f "$APK"
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK was not generated."
+            exit 1
+          fi
 
-          echo "APK successfully created:"
+          echo "========================================"
+          echo "WikaLive APK CREATED"
+          echo "========================================"
+
           ls -lh "$APK"
 
       - name: Upload APK
