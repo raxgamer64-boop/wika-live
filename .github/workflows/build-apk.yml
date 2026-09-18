@@ -10,9 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # =========================================================
+      # 1. CHECKOUT
+      # =========================================================
       - name: Checkout
         uses: actions/checkout@v4
 
+      # =========================================================
+      # 2. FLUTTER
+      # =========================================================
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -20,6 +26,9 @@ jobs:
           channel: stable
           cache: true
 
+      # =========================================================
+      # 3. CREATE FRESH FLUTTER ANDROID PROJECT
+      # =========================================================
       - name: Create Flutter project
         run: |
           set -e
@@ -34,108 +43,247 @@ jobs:
 
           cp main.dart app/lib/main.dart
 
-          test -f google-services.json
+          if [ ! -f google-services.json ]; then
+            echo "ERROR: google-services.json is missing from repository root."
+            exit 1
+          fi
+
           cp google-services.json app/android/app/google-services.json
 
-      - name: Configure Firebase Google Services
+          echo "Flutter project created successfully."
+
+      # =========================================================
+      # 4. CONFIGURE ANDROID / KOTLIN / FIREBASE
+      # =========================================================
+      - name: Configure Android Kotlin and Firebase
         working-directory: app
         run: |
           set -e
 
           python3 - <<'PY'
           from pathlib import Path
+          import re
+          import json
 
-          # -----------------------------
-          # settings.gradle.kts
-          # -----------------------------
-          p = Path("android/settings.gradle.kts")
-          s = p.read_text()
+          # =====================================================
+          # SETTINGS.GRADLE.KTS
+          # =====================================================
+          settings = Path("android/settings.gradle.kts")
+          s = settings.read_text()
 
+          # Kotlin Gradle Plugin
+          kotlin_pattern = (
+              r'id\("org\.jetbrains\.kotlin\.android"\)'
+              r'\s+version\s+"[^"]+"'
+              r'\s+apply\s+false'
+          )
+
+          kotlin_replacement = (
+              'id("org.jetbrains.kotlin.android") '
+              'version "2.3.21" apply false'
+          )
+
+          if re.search(kotlin_pattern, s):
+              s = re.sub(
+                  kotlin_pattern,
+                  kotlin_replacement,
+                  s,
+                  count=1
+              )
+          else:
+              s = s.replace(
+                  "plugins {",
+                  '''plugins {
+              id("org.jetbrains.kotlin.android") version "2.3.21" apply false''',
+                  1
+              )
+
+          # Google Services Gradle Plugin
           if 'com.google.gms.google-services' not in s:
               s = s.replace(
-                  'plugins {',
+                  "plugins {",
                   '''plugins {
               id("com.google.gms.google-services") version "4.4.3" apply false''',
                   1
               )
 
-          p.write_text(s)
+          settings.write_text(s)
 
-          # -----------------------------
-          # app/build.gradle.kts
-          # -----------------------------
-          p = Path("android/app/build.gradle.kts")
-          s = p.read_text()
+          # =====================================================
+          # APP/BUILD.GRADLE.KTS
+          # =====================================================
+          app_gradle = Path("android/app/build.gradle.kts")
+          s = app_gradle.read_text()
 
+          # Google Services plugin
           if 'id("com.google.gms.google-services")' not in s:
               s = s.replace(
-                  'plugins {',
+                  "plugins {",
                   '''plugins {
               id("com.google.gms.google-services")''',
                   1
               )
 
-          p.write_text(s)
+          # =====================================================
+          # JAVA 17
+          # =====================================================
+          s = s.replace(
+              "JavaVersion.VERSION_11",
+              "JavaVersion.VERSION_17"
+          )
 
-          # -----------------------------
-          # Verify Google Services plugin
-          # -----------------------------
-          s = p.read_text()
-
-          if 'com.google.gms.google-services' not in s:
-              raise SystemExit(
-                  "ERROR: Google Services Gradle plugin was not configured."
+          # =====================================================
+          # KOTLIN JVM 17
+          # =====================================================
+          if "import org.jetbrains.kotlin.gradle.dsl.JvmTarget" not in s:
+              s = (
+                  "import org.jetbrains.kotlin.gradle.dsl.JvmTarget\n"
+                  + s
               )
 
-          # -----------------------------
-          # Verify google-services.json
-          # -----------------------------
-          json_file = Path("android/app/google-services.json")
+          if "kotlin {" not in s:
+              s += '''
 
-          if not json_file.exists():
-              raise SystemExit(
-                  "ERROR: google-services.json is missing."
+          kotlin {
+              compilerOptions {
+                  jvmTarget.set(JvmTarget.JVM_17)
+              }
+          }
+          '''
+          elif "jvmTarget.set(JvmTarget.JVM_17)" not in s:
+              s += '''
+
+          kotlin {
+              compilerOptions {
+                  jvmTarget.set(JvmTarget.JVM_17)
+              }
+          }
+          '''
+
+          # =====================================================
+          # RELEASE SIGNING CONFIG
+          # =====================================================
+          if "signingConfigs" not in s:
+              signing_block = '''
+
+          signingConfigs {
+              create("release") {
+                  val propsFile = rootProject.file("key.properties")
+                  val props = java.util.Properties()
+
+                  if (propsFile.exists()) {
+                      propsFile.inputStream().use {
+                          props.load(it)
+                      }
+
+                      storeFile =
+                          rootProject.file(
+                              props.getProperty("storeFile")
+                          )
+
+                      storePassword =
+                          props.getProperty("storePassword")
+
+                      keyAlias =
+                          props.getProperty("keyAlias")
+
+                      keyPassword =
+                          props.getProperty("keyPassword")
+                  }
+              }
+          }
+          '''
+
+              s = s.replace(
+                  "buildTypes {",
+                  signing_block + "\nbuildTypes {",
+                  1
               )
 
-          import json
+          # Replace Flutter's default debug signing on release
+          s = s.replace(
+              'signingConfig = signingConfigs.getByName("debug")',
+              'signingConfig = signingConfigs.getByName("release")'
+          )
 
-          data = json.loads(json_file.read_text())
+          # If release signingConfig somehow wasn't present,
+          # add it inside release block.
+          if (
+              'signingConfig = signingConfigs.getByName("release")'
+              not in s
+          ):
+              s = s.replace(
+                  "release {",
+                  '''release {
+                      signingConfig =
+                          signingConfigs.getByName("release")''',
+                  1
+              )
+
+          app_gradle.write_text(s)
+
+          # =====================================================
+          # VERIFY GOOGLE SERVICES JSON
+          # =====================================================
+          google_json = Path("android/app/google-services.json")
+
+          if not google_json.exists():
+              raise SystemExit(
+                  "ERROR: android/app/google-services.json missing."
+              )
+
+          data = json.loads(google_json.read_text())
 
           clients = data.get("client", [])
 
-          package_found = False
-          web_client_found = False
+          android_package_found = False
+          web_oauth_found = False
 
           for client in clients:
-              android_info = client.get("client_info", {})
-              package_name = android_info.get("android_client_info", {}).get(
+              client_info = client.get("client_info", {})
+
+              android_info = client_info.get(
+                  "android_client_info",
+                  {}
+              )
+
+              package_name = android_info.get(
                   "package_name"
               )
 
               if package_name == "com.example.wika_live":
-                  package_found = True
+                  android_package_found = True
 
               for oauth in client.get("oauth_client", []):
                   if oauth.get("client_type") == 3:
-                      web_client_found = True
+                      web_oauth_found = True
 
-          if not package_found:
+          if not android_package_found:
               raise SystemExit(
                   "ERROR: google-services.json does not contain "
-                  "Android package com.example.wika_live."
+                  "com.example.wika_live"
               )
 
-          if not web_client_found:
+          if not web_oauth_found:
               raise SystemExit(
                   "ERROR: google-services.json does not contain "
                   "a Web OAuth client (client_type 3)."
               )
 
-          print("Google Services configuration verified.")
-          print("Android package: com.example.wika_live")
-          print("Web OAuth client: FOUND")
+          print("==========================================")
+          print("ANDROID CONFIGURATION VERIFIED")
+          print("==========================================")
+          print("Kotlin: 2.3.21")
+          print("JVM Target: 17")
+          print("Google Services: 4.4.3")
+          print("Package: com.example.wika_live")
+          print("Web OAuth Client: FOUND")
+          print("==========================================")
           PY
 
+      # =========================================================
+      # 5. ADD FLUTTER PACKAGES
+      # =========================================================
       - name: Add packages
         working-directory: app
         run: |
@@ -146,15 +294,16 @@ jobs:
           flutter pub add cloud_firestore
           flutter pub add firebase_storage
           flutter pub add image_picker
-
-          # Keep Google Sign-In on the Flutter 7.x API.
           flutter pub add google_sign_in:7.2.0
-
-          # ZEGOCLOUD Live Streaming
           flutter pub add zego_uikit_prebuilt_live_streaming
 
           flutter pub get
 
+          echo "All Flutter packages installed."
+
+      # =========================================================
+      # 6. RELEASE SIGNING
+      # =========================================================
       - name: Configure release signing
         working-directory: app
         env:
@@ -165,13 +314,15 @@ jobs:
         run: |
           set -e
 
+          echo "Checking Android signing secrets..."
+
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "ERROR: KEYSTORE_BASE64 is missing."
             exit 1
           fi
 
           if [ -z "$KEYSTORE_PASSWORD" ]; then
-            echo "ERROR: KEYSTORE_PASS is missing."
+            echo "ERROR: STORE_PASS is missing."
             exit 1
           fi
 
@@ -185,10 +336,15 @@ jobs:
             exit 1
           fi
 
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          # Put keystore directly inside android/
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
 
-          test -s android/app/upload-keystore.jks
+          if [ ! -s android/upload-keystore.jks ]; then
+            echo "ERROR: Keystore file was not created."
+            exit 1
+          fi
 
+          # key.properties
           cat > android/key.properties <<EOF
           storePassword=$KEYSTORE_PASSWORD
           keyPassword=$KEY_PASSWORD
@@ -196,93 +352,38 @@ jobs:
           storeFile=upload-keystore.jks
           EOF
 
-          python3 - <<'PY'
-          from pathlib import Path
+          echo "Release signing configured successfully."
 
-          p = Path("android/app/build.gradle.kts")
-          s = p.read_text()
-
-          if "import java.util.Properties" not in s:
-              s = "import java.util.Properties\n\n" + s
-
-          # Add release signing configuration safely.
-          if 'create("release")' not in s:
-              signing_block = '''
-              signingConfigs {
-                  create("release") {
-                      val propsFile = rootProject.file("key.properties")
-                      val props = Properties()
-
-                      if (propsFile.exists()) {
-                          propsFile.inputStream().use {
-                              props.load(it)
-                          }
-
-                          storeFile =
-                              rootProject.file(
-                                  props.getProperty("storeFile")
-                              )
-
-                          storePassword =
-                              props.getProperty("storePassword")
-
-                          keyAlias =
-                              props.getProperty("keyAlias")
-
-                          keyPassword =
-                              props.getProperty("keyPassword")
-                      }
-                  }
-              }
-          '''
-
-              s = s.replace(
-                  "android {",
-                  "android {" + signing_block,
-                  1
-              )
-
-          # Attach release signing config.
-          if 'signingConfig = signingConfigs.getByName("release")' not in s:
-              s = s.replace(
-                  'release {',
-                  '''release {
-              signingConfig =
-                  signingConfigs.getByName("release")''',
-                  1
-              )
-
-          p.write_text(s)
-          PY
-
-          echo "Android release signing configured."
-
-      - name: Verify Android configuration
+      # =========================================================
+      # 7. VERIFY SIGNING CONFIG
+      # =========================================================
+      - name: Verify signing configuration
         working-directory: app
         run: |
           set -e
 
-          echo "Checking Android package..."
-
-          grep -n "namespace" android/app/build.gradle.kts || true
-
-          echo "Checking Google Services..."
-
-          test -f android/app/google-services.json
-
-          echo "Checking signing keystore..."
-
-          test -f android/app/upload-keystore.jks
+          test -f android/upload-keystore.jks
           test -f android/key.properties
 
-          echo "Android configuration OK."
+          echo "Keystore: FOUND"
+          echo "key.properties: FOUND"
+          echo "Release signing: READY"
 
+      # =========================================================
+      # 8. ANALYZE DART
+      # =========================================================
       - name: Analyze Dart
         working-directory: app
         run: |
           set -e
-          flutter analyze --no-fatal-infos --no-fatal-warnings
 
+          flutter analyze \
+            --no-fatal-infos \
+            --no-fatal-warnings
+
+      # =========================================================
+      # 9. BUILD RELEASE APK
+      # =========================================================
       - name: Build release APK
         working-directory: app
         env:
@@ -298,17 +399,24 @@ jobs:
           flutter clean
           flutter pub get
 
-          echo "========================================"
-          echo "Building WikaLive RELEASE APK"
-          echo "Google Sign-In: Firebase"
-          echo "ZEGOCLOUD: Enabled"
-          echo "Release Signing: Enabled"
-          echo "========================================"
+          echo "=========================================="
+          echo "BUILDING WIKALIVE RELEASE APK"
+          echo "=========================================="
+          echo "Flutter: 3.35.4"
+          echo "Kotlin: 2.3.21"
+          echo "Google Sign-In: 7.2.0"
+          echo "Firebase: ENABLED"
+          echo "ZEGOCLOUD: ENABLED"
+          echo "Release Signing: ENABLED"
+          echo "=========================================="
 
           flutter build apk \
             --release \
             --dart-define=ZEGO_APP_SIGN="$ZEGO_APP_SIGN"
 
+      # =========================================================
+      # 10. VERIFY APK
+      # =========================================================
       - name: Verify APK
         run: |
           set -e
@@ -320,12 +428,15 @@ jobs:
             exit 1
           fi
 
-          echo "========================================"
-          echo "WikaLive APK CREATED"
-          echo "========================================"
+          echo "=========================================="
+          echo "WIKALIVE APK CREATED SUCCESSFULLY"
+          echo "=========================================="
 
           ls -lh "$APK"
 
+      # =========================================================
+      # 11. UPLOAD APK
+      # =========================================================
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
