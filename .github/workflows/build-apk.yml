@@ -36,6 +36,60 @@ jobs:
           test -f app/lib/main.dart
           test -f app/android/app/google-services.json
 
+      - name: Configure Kotlin
+        working-directory: app
+        run: |
+          set -e
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          files = [
+              Path("android/settings.gradle.kts"),
+              Path("android/settings.gradle"),
+          ]
+
+          found = False
+
+          for p in files:
+              if not p.exists():
+                  continue
+
+              s = p.read_text()
+
+              # Firebase-created Flutter projects normally have:
+              # id("org.jetbrains.kotlin.android") version "2.1.0" apply false
+              s, count = re.subn(
+                  r'(id\(["\']org\.jetbrains\.kotlin\.android["\']\)\s+version\s+["\'])[^"\']+(["\'])',
+                  r'\g<1>2.3.21\g<2>',
+                  s,
+              )
+
+              if count:
+                  found = True
+                  p.write_text(s)
+                  print(f"Updated Kotlin Gradle plugin in {p}")
+
+          if not found:
+              print("Kotlin plugin version was not found by the first pattern.")
+
+              p = Path("android/settings.gradle.kts")
+              if p.exists():
+                  s = p.read_text()
+
+                  if "org.jetbrains.kotlin.android" in s:
+                      s = re.sub(
+                          r'(org\.jetbrains\.kotlin\.android.*?version\s*["\'])[^"\']+(["\'])',
+                          r'\g<1>2.3.21\g<2>',
+                          s,
+                      )
+                      p.write_text(s)
+                      print("Updated Kotlin plugin using fallback pattern.")
+
+          print("Kotlin configuration step completed.")
+          PY
+
       - name: Configure Firebase
         working-directory: app
         run: |
@@ -50,9 +104,9 @@ jobs:
           # Firebase Google Services plugin
           s = settings.read_text()
 
-          if 'com.google.gms.google-services' not in s:
+          if "com.google.gms.google-services" not in s:
               s = s.replace(
-                  'plugins {',
+                  "plugins {",
                   'plugins {\n    id("com.google.gms.google-services") version "4.4.3" apply false',
                   1
               )
@@ -63,7 +117,7 @@ jobs:
 
           if 'id("com.google.gms.google-services")' not in s:
               s = s.replace(
-                  'plugins {',
+                  "plugins {",
                   'plugins {\n    id("com.google.gms.google-services")',
                   1
               )
