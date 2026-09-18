@@ -409,7 +409,32 @@ jobs:
           flutter build apk \
             --release \
             --dart-define=ZEGO_APP_SIGN="$ZEGO_APP_SIGN"
+      - name: Verify APK Google Sign-In configuration
+        working-directory: app
+        run: |
+          set -e
 
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+
+          echo "=========================================="
+          echo "VERIFYING FINAL APK"
+          echo "=========================================="
+
+          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)/apksigner verify --verbose "$APK"
+
+          echo "=========================================="
+          echo "APK CERTIFICATE SHA-1"
+          echo "=========================================="
+
+          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)/apksigner verify --print-certs "$APK"
+
+          echo "=========================================="
+          echo "APK PACKAGE"
+          echo "=========================================="
+
+          unzip -p "$APK" AndroidManifest.xml >/dev/null
+
+          echo "APK verification completed."
       - name: Verify APK
         run: |
           set -e
