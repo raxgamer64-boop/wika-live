@@ -25,7 +25,10 @@ jobs:
         run: |
           set -e
 
-          flutter create --org com.example --project-name wika_live app
+          flutter create \
+            --org com.example \
+            --project-name wika_live \
+            app
 
           cp main.dart app/lib/main.dart
           cp google-services.json app/android/app/google-services.json
@@ -44,11 +47,12 @@ jobs:
           settings = Path("android/settings.gradle.kts")
           build = Path("android/app/build.gradle.kts")
 
+          # Firebase Google Services plugin
           s = settings.read_text()
 
-          if "com.google.gms.google-services" not in s:
+          if 'com.google.gms.google-services' not in s:
               s = s.replace(
-                  "plugins {",
+                  'plugins {',
                   'plugins {\n    id("com.google.gms.google-services") version "4.4.3" apply false',
                   1
               )
@@ -59,7 +63,7 @@ jobs:
 
           if 'id("com.google.gms.google-services")' not in s:
               s = s.replace(
-                  "plugins {",
+                  'plugins {',
                   'plugins {\n    id("com.google.gms.google-services")',
                   1
               )
@@ -86,7 +90,7 @@ jobs:
         working-directory: app
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          STORE_PASS: ${{ secrets.STORE_PASS }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
@@ -97,8 +101,8 @@ jobs:
             exit 1
           fi
 
-          if [ -z "$KEYSTORE_PASS" ]; then
-            echo "ERROR: KEYSTORE_PASS is missing"
+          if [ -z "$STORE_PASS" ]; then
+            echo "ERROR: STORE_PASS is missing"
             exit 1
           fi
 
@@ -114,8 +118,10 @@ jobs:
 
           echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
 
+          test -f android/app/upload-keystore.jks
+
           cat > android/key.properties <<EOF
-          storePassword=$KEYSTORE_PASS
+          storePassword=$STORE_PASS
           keyPassword=$KEY_PASSWORD
           keyAlias=$KEY_ALIAS
           storeFile=upload-keystore.jks
@@ -131,7 +137,7 @@ jobs:
               s = "import java.util.Properties\n\n" + s
 
           if 'create("release")' not in s:
-              signing = '''android {
+              signing_block = '''android {
               signingConfigs {
                   create("release") {
                       val propsFile = rootProject.file("key.properties")
@@ -142,7 +148,7 @@ jobs:
                               props.load(it)
                           }
 
-                          storeFile = rootProject.file(
+                          storeFile = file(
                               props.getProperty("storeFile")
                           )
 
@@ -160,7 +166,7 @@ jobs:
 
               s = s.replace(
                   "android {",
-                  signing,
+                  signing_block,
                   1
               )
 
@@ -174,11 +180,29 @@ jobs:
           p.write_text(s)
           PY
 
+      - name: Verify release keystore
+        working-directory: app
+        env:
+          STORE_PASS: ${{ secrets.STORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          set -e
+
+          test -f android/app/upload-keystore.jks
+
+          keytool -list \
+            -keystore android/app/upload-keystore.jks \
+            -storepass "$STORE_PASS" \
+            -alias "$KEY_ALIAS"
+
       - name: Analyze Dart
         working-directory: app
         run: |
           set -e
-          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+          flutter analyze \
+            --no-fatal-infos \
+            --no-fatal-warnings
 
       - name: Build release APK
         working-directory: app
@@ -195,7 +219,10 @@ jobs:
           flutter clean
           flutter pub get
 
-          flutter build apk --release \
+          echo "Building WikaLive release APK..."
+
+          flutter build apk \
+            --release \
             --dart-define=ZEGO_APP_SIGN="$ZEGO_APP_SIGN"
 
       - name: Verify APK
@@ -206,6 +233,7 @@ jobs:
 
           test -f "$APK"
 
+          echo "APK successfully created:"
           ls -lh "$APK"
 
       - name: Upload APK
