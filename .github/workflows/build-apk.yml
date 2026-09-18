@@ -359,12 +359,13 @@ jobs:
           flutter analyze \
             --no-fatal-infos \
             --no-fatal-warnings
-      - name: Configure Gradle memory and AndroidX
-        working-directory: app
-        run: |
+     
+           - name: Configure Gradle memory and AndroidX
+           working-directory: app
+           run: |
           set -e
 
-          cat > android/gradle.properties <<'EOF'
+          cat >> android/gradle.properties <<'EOF'
           org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8
           org.gradle.daemon=false
           org.gradle.parallel=false
@@ -373,12 +374,8 @@ jobs:
           android.enableJetifier=true
           EOF
 
-          echo "=========================================="
-          echo "GRADLE MEMORY: 4 GB"
-          echo "ANDROIDX: ENABLED"
-          echo "JETIFIER: ENABLED"
-          echo "GRADLE DAEMON: DISABLED"
-          echo "=========================================="
+          echo "Gradle memory: 4 GB"
+          echo "AndroidX: ENABLED"
       - name: Build release APK
         working-directory: app
         env:
