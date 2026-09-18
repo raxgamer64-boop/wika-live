@@ -51,66 +51,90 @@ jobs:
           # ---------------------------------------------------------
           # Kotlin Gradle Plugin
           # ---------------------------------------------------------
+
           s = settings.read_text()
 
-          s = re.sub(
-              r'(id\(["\']org\.jetbrains\.kotlin\.android["\']\)\s+version\s+["\'])[^"\']+(["\'])',
+          pattern = (
+              r'(id\(["\']org\.jetbrains\.kotlin\.android["\']\)'
+              r'\s+version\s+["\'])[^"\']+(["\'])'
+          )
+
+          s, count = re.subn(
+              pattern,
               r'\g<1>2.3.21\g<2>',
               s
           )
 
+          if count == 0:
+              print("WARNING: Kotlin plugin version pattern was not found.")
+          else:
+              print("Kotlin Gradle plugin set to 2.3.21.")
+
           settings.write_text(s)
 
           # ---------------------------------------------------------
-          # Kotlin compilerOptions DSL
-          # Kotlin 2.3.x no longer accepts:
-          #
-          # kotlinOptions {
-          #     jvmTarget = JavaVersion.VERSION_11.toString()
-          # }
-          #
-          # Replace it with:
-          #
-          # compilerOptions {
-          #     jvmTarget.set(JvmTarget.JVM_11)
-          # }
+          # Remove old kotlinOptions block from app/build.gradle.kts
           # ---------------------------------------------------------
+
           s = build.read_text()
 
-          if "import org.jetbrains.kotlin.gradle.dsl.JvmTarget" not in s:
-              s = (
-                  "import org.jetbrains.kotlin.gradle.dsl.JvmTarget\n"
-                  + s
-              )
-
-          old_block = re.compile(
-              r'kotlinOptions\s*\{\s*'
-              r'jvmTarget\s*=\s*JavaVersion\.VERSION_11\.toString\(\)\s*'
-              r'\}',
-              re.MULTILINE
-          )
-
-          s = old_block.sub(
-              'compilerOptions {\n'
-              '        jvmTarget.set(JvmTarget.JVM_11)\n'
-              '    }',
-              s
-          )
-
-          # Handle any remaining simple Kotlin jvmTarget assignment.
           s = re.sub(
-              r'kotlinOptions\s*\{\s*'
-              r'jvmTarget\s*=\s*["\']11["\']\s*'
-              r'\}',
-              'compilerOptions {\n'
-              '        jvmTarget.set(JvmTarget.JVM_11)\n'
-              '    }',
-              s
+              r'\n\s*kotlinOptions\s*\{.*?\n\s*\}',
+              '',
+              s,
+              flags=re.DOTALL
           )
+
+          # Remove any previous incorrectly inserted compilerOptions
+          # block if present.
+          s = re.sub(
+              r'\n\s*compilerOptions\s*\{.*?\n\s*\}',
+              '',
+              s,
+              flags=re.DOTALL
+          )
+
+          # Remove previous kotlin block if our earlier workflow
+          # inserted one.
+          s = re.sub(
+              r'\n\s*kotlin\s*\{\s*compilerOptions\s*\{.*?\}\s*\}',
+              '',
+              s,
+              flags=re.DOTALL
+          )
+
+          # ---------------------------------------------------------
+          # Add required Kotlin import
+          # ---------------------------------------------------------
+
+          import_line = (
+              "import org.jetbrains.kotlin.gradle.dsl.JvmTarget"
+          )
+
+          if import_line not in s:
+              s = import_line + "\n" + s
+
+          # ---------------------------------------------------------
+          # Add Kotlin compilerOptions at PROJECT level.
+          #
+          # IMPORTANT:
+          # This is intentionally outside android { }.
+          # ---------------------------------------------------------
+
+          kotlin_config = '''
+
+          kotlin {
+              compilerOptions {
+                  jvmTarget.set(JvmTarget.JVM_11)
+              }
+          }
+          '''
+
+          s = s.rstrip() + kotlin_config
 
           build.write_text(s)
 
-          print("Kotlin configuration completed.")
+          print("Kotlin compilerOptions configured correctly.")
           PY
 
       - name: Configure Firebase
@@ -124,7 +148,7 @@ jobs:
           settings = Path("android/settings.gradle.kts")
           build = Path("android/app/build.gradle.kts")
 
-          # Add Google Services plugin to settings.gradle.kts
+          # Firebase Google Services plugin
           s = settings.read_text()
 
           if "com.google.gms.google-services" not in s:
@@ -138,7 +162,7 @@ jobs:
 
           settings.write_text(s)
 
-          # Apply Google Services plugin to app
+          # Apply Google Services plugin
           s = build.read_text()
 
           if 'id("com.google.gms.google-services")' not in s:
@@ -221,7 +245,6 @@ jobs:
 
           # Add release signing configuration.
           if 'create("release")' not in s:
-              marker = "android {"
 
               signing_block = '''android {
               signingConfigs {
@@ -252,12 +275,12 @@ jobs:
               '''
 
               s = s.replace(
-                  marker,
+                  "android {",
                   signing_block,
                   1
               )
 
-          # Make release build use the signing configuration.
+          # Attach release signing configuration.
           if 'signingConfig = signingConfigs.getByName("release")' not in s:
               s = s.replace(
                   "release {",
@@ -270,267 +293,6 @@ jobs:
           p.write_text(s)
 
           print("Release signing configured.")
-          PY
-
-      - name: Verify release keystore
-        working-directory: app
-        env:
-          STORE_PASS: ${{ secrets.STORE_PASS }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: |
-          set -e
-
-          test -f android/app/upload-keystore.jks
-
-          keytool -list \
-            -keystore android/app/upload-keystore.jks \
-            -storepass "$STORE_PASS" \
-            -alias "$KEY_ALIAS"
-
-      - name: Analyze Dart
-        working-directory: app
-        run: |
-          set -e
-
-          flutter analyze \
-            --no-fatal-infos \
-            --no-fatal-warnings
-
-      - name: Build release APK
-        working-directory: app
-        env:
-          ZEGO_APP_SIGN: ${{ secrets.ZEGO_APP_SIGN }}
-        run: |
-          set -e
-
-          if [ -z "$ZEGO_APP_SIGN" ]; then
-            echo "ERROR: ZEGO_APP_SIGN GitHub Secret is missing."
-            exit 1
-          fi
-
-          flutter clean
-          flutter pub get
-
-          echo "Building WikaLive release APK..."
-
-          flutter build apk \
-            --release \
-            --dart-define=ZEGO_APP_SIGN="$ZEGO_APP_SIGN"
-
-      - name: Verify APK
-        run: |
-          set -e
-
-          APK="app/build/app/outputs/flutter-apk/app-release.apk"
-
-          test -f "$APK"
-
-          echo "APK successfully created:"
-          ls -lh "$APK"
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: WikaLive-release-apk
-          path: app/build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error          test -f app/android/app/google-services.json
-
-      - name: Configure Kotlin
-        working-directory: app
-        run: |
-          set -e
-
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          files = [
-              Path("android/settings.gradle.kts"),
-              Path("android/settings.gradle"),
-          ]
-
-          found = False
-
-          for p in files:
-              if not p.exists():
-                  continue
-
-              s = p.read_text()
-
-              # Firebase-created Flutter projects normally have:
-              # id("org.jetbrains.kotlin.android") version "2.1.0" apply false
-              s, count = re.subn(
-                  r'(id\(["\']org\.jetbrains\.kotlin\.android["\']\)\s+version\s+["\'])[^"\']+(["\'])',
-                  r'\g<1>2.3.21\g<2>',
-                  s,
-              )
-
-              if count:
-                  found = True
-                  p.write_text(s)
-                  print(f"Updated Kotlin Gradle plugin in {p}")
-
-          if not found:
-              print("Kotlin plugin version was not found by the first pattern.")
-
-              p = Path("android/settings.gradle.kts")
-              if p.exists():
-                  s = p.read_text()
-
-                  if "org.jetbrains.kotlin.android" in s:
-                      s = re.sub(
-                          r'(org\.jetbrains\.kotlin\.android.*?version\s*["\'])[^"\']+(["\'])',
-                          r'\g<1>2.3.21\g<2>',
-                          s,
-                      )
-                      p.write_text(s)
-                      print("Updated Kotlin plugin using fallback pattern.")
-
-          print("Kotlin configuration step completed.")
-          PY
-
-      - name: Configure Firebase
-        working-directory: app
-        run: |
-          set -e
-
-          python3 - <<'PY'
-          from pathlib import Path
-
-          settings = Path("android/settings.gradle.kts")
-          build = Path("android/app/build.gradle.kts")
-
-          # Firebase Google Services plugin
-          s = settings.read_text()
-
-          if "com.google.gms.google-services" not in s:
-              s = s.replace(
-                  "plugins {",
-                  'plugins {\n    id("com.google.gms.google-services") version "4.4.3" apply false',
-                  1
-              )
-
-          settings.write_text(s)
-
-          s = build.read_text()
-
-          if 'id("com.google.gms.google-services")' not in s:
-              s = s.replace(
-                  "plugins {",
-                  'plugins {\n    id("com.google.gms.google-services")',
-                  1
-              )
-
-          build.write_text(s)
-          PY
-
-      - name: Add packages
-        working-directory: app
-        run: |
-          set -e
-
-          flutter pub add firebase_core
-          flutter pub add firebase_auth
-          flutter pub add cloud_firestore
-          flutter pub add firebase_storage
-          flutter pub add image_picker
-          flutter pub add google_sign_in:7.2.0
-          flutter pub add zego_uikit_prebuilt_live_streaming
-
-          flutter pub get
-
-      - name: Configure release signing
-        working-directory: app
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          STORE_PASS: ${{ secrets.STORE_PASS }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          set -e
-
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "ERROR: KEYSTORE_BASE64 is missing"
-            exit 1
-          fi
-
-          if [ -z "$STORE_PASS" ]; then
-            echo "ERROR: STORE_PASS is missing"
-            exit 1
-          fi
-
-          if [ -z "$KEY_ALIAS" ]; then
-            echo "ERROR: KEY_ALIAS is missing"
-            exit 1
-          fi
-
-          if [ -z "$KEY_PASSWORD" ]; then
-            echo "ERROR: KEY_PASSWORD is missing"
-            exit 1
-          fi
-
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
-
-          test -f android/app/upload-keystore.jks
-
-          cat > android/key.properties <<EOF
-          storePassword=$STORE_PASS
-          keyPassword=$KEY_PASSWORD
-          keyAlias=$KEY_ALIAS
-          storeFile=upload-keystore.jks
-          EOF
-
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path("android/app/build.gradle.kts")
-          s = p.read_text()
-
-          if "import java.util.Properties" not in s:
-              s = "import java.util.Properties\n\n" + s
-
-          if 'create("release")' not in s:
-              signing_block = '''android {
-              signingConfigs {
-                  create("release") {
-                      val propsFile = rootProject.file("key.properties")
-                      val props = Properties()
-
-                      if (propsFile.exists()) {
-                          propsFile.inputStream().use {
-                              props.load(it)
-                          }
-
-                          storeFile = file(
-                              props.getProperty("storeFile")
-                          )
-
-                          storePassword =
-                              props.getProperty("storePassword")
-
-                          keyAlias =
-                              props.getProperty("keyAlias")
-
-                          keyPassword =
-                              props.getProperty("keyPassword")
-                      }
-                  }
-              }'''
-
-              s = s.replace(
-                  "android {",
-                  signing_block,
-                  1
-              )
-
-          if 'signingConfig = signingConfigs.getByName("release")' not in s:
-              s = s.replace(
-                  "release {",
-                  'release {\n            signingConfig = signingConfigs.getByName("release")',
-                  1
-              )
-
-          p.write_text(s)
           PY
 
       - name: Verify release keystore
