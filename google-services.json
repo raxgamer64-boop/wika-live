@@ -97,6 +97,35 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:3472205178:android:ac6c11fa0875d5a7d662c3",
+        "android_client_info": {
+          "package_name": "com.wikalive.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "3472205178-9u0i8qco4otu0qgmm6e9gabh4st49j1r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBH8w1pNZNOIaurhNYI73uHQ2AZ6NSQ6Sw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "3472205178-9u0i8qco4otu0qgmm6e9gabh4st49j1r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
