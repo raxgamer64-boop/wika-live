@@ -435,7 +435,7 @@ jobs:
         working-directory: app
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          STORE_PASS: ${{ secrets.STORE_PASS }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
@@ -446,8 +446,8 @@ jobs:
             exit 1
           fi
 
-          if [ -z "$KEYSTORE_PASS" ]; then
-            echo "ERROR: KEYSTORE_PASS is missing."
+          if [ -z "$STORE_PASS" ]; then
+            echo "ERROR: STORE_PASS is missing."
             exit 1
           fi
 
@@ -471,7 +471,7 @@ jobs:
 
           keytool -list \
             -keystore android/app/upload-keystore.jks \
-            -storepass "$KEYSTORE_PASS" \
+            -storepass "$STORE_PASS" \
             -alias "$KEY_ALIAS" \
             -v | grep -E "Alias name:|Entry type:|SHA1:"
 
@@ -501,7 +501,7 @@ jobs:
 
           # Gradle automatically reads ORG_GRADLE_PROJECT_*
           # as Gradle project properties.
-          ORG_GRADLE_PROJECT_storePassword: ${{ secrets.KEYSTORE_PASS }}
+          ORG_GRADLE_PROJECT_storePassword: ${{ secrets.STORE_PASS }}
           ORG_GRADLE_PROJECT_keyAlias: ${{ secrets.KEY_ALIAS }}
           ORG_GRADLE_PROJECT_keyPassword: ${{ secrets.KEY_PASSWORD }}
         run: |
@@ -628,4 +628,4 @@ jobs:
 
 
       # ==========================================
-              
+      # 12. UPLOAD APK          
