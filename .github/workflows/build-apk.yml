@@ -389,8 +389,9 @@ jobs:
           PYASSET
           test -f assets/wikalive_logo.png
 
-          # Validate pubspec before starting the real build.
-          dart -e 'import "dart:io"; exit(Process.runSync("flutter", ["pub", "get"]).exitCode);'
+          # Validate pubspec and resolve dependencies.
+          # Do not use `dart -e`: modern Dart CLI does not support that option.
+          flutter pub get
 
 
       # ==========================================
@@ -620,5 +621,4 @@ jobs:
           AAB="app/build/app/outputs/bundle/release/app-release.aab"
           test -f "$AAB"
           echo "WIKALIVE AAB CREATED SUCCESSFULLY"
-          ls -lh "$AAB"
-          
+          ls -lh "$AA          
