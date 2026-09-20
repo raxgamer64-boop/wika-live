@@ -601,19 +601,18 @@ jobs:
 
 
       # ==========================================
-      # 11. VERIFY AAB FILE
+      # 11. VERIFY RELEASE FILES
       # ==========================================
-      - name: Verify AAB
+      - name: Verify APK and AAB
         run: |
           set -e
+
+          APK="app/build/app/outputs/flutter-apk/app-release.apk"
           AAB="app/build/app/outputs/bundle/release/app-release.aab"
+
+          test -f "$APK"
           test -f "$AAB"
-          echo "WIKALIVE AAB CREATED SUCCESSFULLY"
-          ls -lh "$AAB"
 
-
-      # ==========================================
-      # 11. VERIFY APK FILE
-      # ==========================================
-      - name: Verify APK
-  
+          echo "=========================================="
+          echo "WIKALIVE RELEASE FILES CREATED SUCCESSFULLY"
+      
