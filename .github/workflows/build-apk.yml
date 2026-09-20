@@ -69,38 +69,61 @@ jobs:
               ''
           )
 
-          # Current ZegoUIKitUser exposes camera/microphone ValueNotifiers.
-          text = text.replace('u.isCameraOn || u.isMicrophoneOn',
-                              'u.camera.value || u.microphone.value')
+          # ZEGO 3.15.6: local mic/camera state is exposed by
+          # controller.audioVideo.microphone.localState / camera.localState.
+          # Fix both the singleton form and the common local `controller`
+          # variable form so the committed main.dart cannot leave the old
+          # direct getters behind.
+          import re
 
-          # ZEGO 3.15.x exposes local camera/microphone state through
-          # controller.audioVideo.camera/microphone, not directly on the
-          # prebuilt controller. Convert old direct-controller references.
           text = text.replace(
-              'ZegoUIKitPrebuiltLiveStreamingController().microphone.value',
-              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.microphone.localState'
+              'u.isCameraOn || u.isMicrophoneOn',
+              'u.camera.value || u.microphone.value'
           )
-          text = text.replace(
-              'ZegoUIKitPrebuiltLiveStreamingController().camera.value',
-              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.camera.localState'
+
+          text = re.sub(
+              r'ZegoUIKitPrebuiltLiveStreamingController\(\)\s*\.\s*microphone(?:\s*\.\s*value)?',
+              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.microphone.localState',
+              text,
           )
-          text = text.replace(
-              'ZegoUIKitPrebuiltLiveStreamingController().microphone.localState',
-              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.microphone.localState'
+          text = re.sub(
+              r'ZegoUIKitPrebuiltLiveStreamingController\(\)\s*\.\s*camera(?:\s*\.\s*value)?',
+              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.camera.localState',
+              text,
           )
-          text = text.replace(
-              'ZegoUIKitPrebuiltLiveStreamingController().camera.localState',
-              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.camera.localState'
+
+          text = re.sub(
+              r'(?<![A-Za-z0-9_])controller\s*\.\s*microphone(?:\s*\.\s*value)?',
+              'controller.audioVideo.microphone.localState',
+              text,
+          )
+          text = re.sub(
+              r'(?<![A-Za-z0-9_])controller\s*\.\s*camera(?:\s*\.\s*value)?',
+              'controller.audioVideo.camera.localState',
+              text,
           )
 
           p.write_text(text)
           PYFIX
 
           echo '--- ZEGO compile-fix verification ---'
-          ! grep -n "controller: ZegoUIKitPrebuiltLiveStreamingController" app/lib/main.dart
-          ! grep -n "isCameraOn\|isMicrophoneOn" app/lib/main.dart
-          ! grep -n "ZegoUIKitPrebuiltLiveStreamingController().microphone\|ZegoUIKitPrebuiltLiveStreamingController().camera" app/lib/main.dart
-          echo 'ZEGO compile fixes applied.'
+          echo 'Remaining direct ZEGO getter references (must be empty):'
+          grep -nE "ZegoUIKitPrebuiltLiveStreamingController\(\)[[:space:]]*\.[[:space:]]*(microphone|camera)" app/lib/main.dart || true
+          grep -nE "(^|[^A-Za-z0-9_])controller[[:space:]]*\.[[:space:]]*(microphone|camera)" app/lib/main.dart || true
+
+          if grep -qE "ZegoUIKitPrebuiltLiveStreamingController\(\)[[:space:]]*\.[[:space:]]*(microphone|camera)" app/lib/main.dart; then
+            echo 'ERROR: direct singleton microphone/camera getter remains.'
+            exit 1
+          fi
+          if grep -qE "(^|[^A-Za-z0-9_])controller[[:space:]]*\.[[:space:]]*(microphone|camera)" app/lib/main.dart; then
+            echo 'ERROR: direct controller microphone/camera getter remains.'
+            exit 1
+          fi
+          if grep -qE "isCameraOn|isMicrophoneOn" app/lib/main.dart; then
+            echo 'ERROR: obsolete ZegoUIKitUser camera/microphone fields remain.'
+            exit 1
+          fi
+          echo 'ZEGO compile fixes verified.'
           cp google-services.json app/android/app/google-services.json
 
           # ==========================================
@@ -590,30 +613,4 @@ jobs:
       # ==========================================
       - name: Verify APK certificate
         working-directory: app
-        run: |
-          set -e
-
-          APK="build/app/outputs/flutter-apk/app-release.apk"
-
-          test -f "$APK"
-
-          BUILD_TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
-
-          echo "=========================================="
-          echo "APK SIGNATURE VERIFICATION"
-          echo "=========================================="
-
-          "$BUILD_TOOLS/apksigner" verify \
-            --verbose \
-            "$APK"
-
-          echo "=========================================="
-          echo "APK CERTIFICATE SHA-1"
-          echo "=========================================="
-
-          "$BUILD_TOOLS/apksigner" verify \
-            --print-certs \
-            "$APK"
-
-          echo "=========================================="
-          ec
+        ru
