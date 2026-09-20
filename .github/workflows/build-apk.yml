@@ -347,18 +347,50 @@ jobs:
           python3 - <<'PYASSET'
           from pathlib import Path
           p = Path('pubspec.yaml')
-          text = p.read_text()
-          if '    - assets/wikalive_logo.png' not in text:
-              lines = text.splitlines()
-              idx = next(i for i, line in enumerate(lines) if line.strip() == 'flutter:')
-              insert = idx + 1
-              lines[insert:insert] = ['  assets:', '    - assets/wikalive_logo.png']
-              text = '\n'.join(lines) + '\n'
-          p.write_text(text)
+          lines = p.read_text().splitlines()
+
+          # Add the logo under the existing flutter: section without
+          # disturbing uses-material-design or other Flutter settings.
+          if '    - assets/wikalive_logo.png' not in lines:
+              flutter_idx = next(
+                  i for i, line in enumerate(lines)
+                  if line.strip() == 'flutter:' and not line.startswith(' ')
+              )
+
+              # Find the end of the top-level flutter section.
+              end = flutter_idx + 1
+              while end < len(lines):
+                  line = lines[end]
+                  if line and not line.startswith((' ', '\t')):
+                      break
+                  end += 1
+
+              flutter_block = lines[flutter_idx + 1:end]
+              assets_pos = None
+              for j, line in enumerate(flutter_block):
+                  if line.strip() == 'uses-material-design: true':
+                      assets_pos = flutter_idx + 2 + j
+                      break
+
+              asset_lines = ['  assets:', '    - assets/wikalive_logo.png']
+              if assets_pos is not None:
+                  lines[assets_pos:assets_pos] = asset_lines
+              else:
+                  lines[end:end] = asset_lines
+
+          p.write_text('\n'.join(lines) + '\n')
+
+          # Show the final Flutter section for diagnostics.
+          print('--- pubspec Flutter section ---')
+          lines = p.read_text().splitlines()
+          start = next(i for i, line in enumerate(lines) if line.strip() == 'flutter:')
+          for line in lines[start:min(start + 12, len(lines))]:
+              print(line)
           PYASSET
           test -f assets/wikalive_logo.png
 
-          flutter pub get
+          # Validate pubspec before starting the real build.
+          dart -e 'import "dart:io"; exit(Process.runSync("flutter", ["pub", "get"]).exitCode);'
 
 
       # ==========================================
@@ -589,44 +621,4 @@ jobs:
           test -f "$AAB"
           echo "WIKALIVE AAB CREATED SUCCESSFULLY"
           ls -lh "$AAB"
-
-
-      # ==========================================
-      # 11. VERIFY APK FILE
-      # ==========================================
-      - name: Verify APK
-        run: |
-          set -e
-
-          APK="app/build/app/outputs/flutter-apk/app-release.apk"
-
-          test -f "$APK"
-
-          echo "=========================================="
-          echo "WIKALIVE APK CREATED SUCCESSFULLY"
-          echo "=========================================="
-
-          ls -lh "$APK"
-
-
-      # ==========================================
-      # 13. UPLOAD AAB
-      # ==========================================
-      - name: Upload AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: WikaLive-release-aab
-          path: app/build/app/outputs/bundle/release/app-release.aab
-          if-no-files-found: error
-
-
-      # ==========================================
-      # 12. UPLOAD APK
-      # ==========================================
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: WikaLive-release-apk
-          path: app/build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
           
