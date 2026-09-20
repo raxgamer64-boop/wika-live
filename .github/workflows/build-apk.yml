@@ -44,7 +44,7 @@ jobs:
             --platforms android \
             app
 
-          cp main.dart app/lib/main.dart
+          cp WikaLive_REAL_LIVE_PRO_FINAL.dart app/lib/main.dart
           cp google-services.json app/android/app/google-services.json
 
           # ==========================================
