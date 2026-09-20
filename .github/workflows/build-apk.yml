@@ -76,6 +76,27 @@ jobs:
           # direct getters behind.
           import re
 
+          # ZEGO 3.15.6: switchState() is the supported way to toggle
+          # the local microphone/camera. Do this BEFORE the localState
+          # getter replacements below, otherwise a bool would receive
+          # an invalid .toggle() call.
+          text = text.replace(
+              'ZegoUIKitPrebuiltLiveStreamingController().microphone.toggle()',
+              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.microphone.switchState()',
+          )
+          text = text.replace(
+              'ZegoUIKitPrebuiltLiveStreamingController().camera.toggle()',
+              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.camera.switchState()',
+          )
+          text = text.replace(
+              'controller.microphone.toggle()',
+              'controller.audioVideo.microphone.switchState()',
+          )
+          text = text.replace(
+              'controller.camera.toggle()',
+              'controller.audioVideo.camera.switchState()',
+          )
+
           text = text.replace(
               'u.isCameraOn || u.isMicrophoneOn',
               'u.camera.value || u.microphone.value'
@@ -585,31 +606,4 @@ jobs:
           echo "Kotlin: 2.3.21"
           echo "JVM: 17"
           echo "Google Sign-In: 7.2.0"
-          echo "Firebase: ENABLED"
-          echo "ZEGOCLOUD: ENABLED"
-          echo "Release signing: ENABLED"
-          echo "AndroidX: ENABLED"
-          echo "=========================================="
-
-          echo "=========================================="
-          echo "BUILDING WIKALIVE RELEASE AAB"
-          echo "=========================================="
-
-          flutter build appbundle \
-            --release \
-            --dart-define=ZEGO_APP_SIGN="$ZEGO_APP_SIGN"
-
-          echo "=========================================="
-          echo "BUILDING WIKALIVE RELEASE APK"
-          echo "=========================================="
-
-          flutter build apk \
-            --release \
-            --dart-define=ZEGO_APP_SIGN="$ZEGO_APP_SIGN"
-
-          APK="build/app/outputs/flutter-apk/app-release.apk"
-          AAB="build/app/outputs/bundle/release/app-release.aab"
-          test -f "$APK"
-          test -f "$AAB"
-
-          BUILD_TOOLS="$ANDROID_HOME
+      
