@@ -607,10 +607,9 @@ jobs:
             --release \
             --dart-define=ZEGO_APP_SIGN="$ZEGO_APP_SIGN"
 
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          AAB="build/app/outputs/bundle/release/app-release.aab"
+          test -f "$APK"
+          test -f "$AAB"
 
-      # ==========================================
-      # 10. VERIFY APK SIGNATURE
-      # ==========================================
-      - name: Verify APK certificate
-        working-directory: app
-        ru
+          BUILD_TOOLS="$ANDROID_HOME
