@@ -44,7 +44,39 @@ jobs:
             --platforms android \
             app
 
-          cp WikaLive_REAL_LIVE_PRO_FINAL.dart app/lib/main.dart
+          # Use the repository's real root main.dart. Patch the ZEGO API mismatches
+          # in-place so the build never depends on a second filename being uploaded.
+          test -f main.dart || { echo 'ERROR: root main.dart is missing'; exit 1; }
+          cp main.dart app/lib/main.dart
+
+          python3 - <<'PYFIX'
+          from pathlib import Path
+          p = Path('app/lib/main.dart')
+          text = p.read_text()
+
+          # Current ZEGO prebuilt live-streaming widget does not expose a
+          # controller named parameter. Remove only the controller argument
+          # lines introduced by the previous UI version.
+          text = text.replace(
+              '    controller: ZegoUIKitPrebuiltLiveStreamingController(),\n',
+              ''
+          )
+          text = text.replace(
+              '      controller: ZegoUIKitPrebuiltLiveStreamingController(),\n',
+              ''
+          )
+
+          # Current ZegoUIKitUser exposes camera/microphone ValueNotifiers.
+          text = text.replace('u.isCameraOn || u.isMicrophoneOn',
+                              'u.camera.value || u.microphone.value')
+
+          p.write_text(text)
+          PYFIX
+
+          echo '--- ZEGO compile-fix verification ---'
+          ! grep -n "controller: ZegoUIKitPrebuiltLiveStreamingController" app/lib/main.dart
+          ! grep -n "isCameraOn\|isMicrophoneOn" app/lib/main.dart
+          echo 'ZEGO compile fixes applied.'
           cp google-services.json app/android/app/google-services.json
 
           # ==========================================
@@ -580,4 +612,3 @@ jobs:
           name: WikaLive-release-apk
           path: app/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-          
