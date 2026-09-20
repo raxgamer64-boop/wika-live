@@ -47,7 +47,10 @@ jobs:
           # Use the repository's real root main.dart. Patch the ZEGO API mismatches
           # in-place so the build never depends on a second filename being uploaded.
           test -f main.dart || { echo 'ERROR: root main.dart is missing'; exit 1; }
+          test -f wikalive_logo.png || { echo 'ERROR: wikalive_logo.png is missing'; exit 1; }
           cp main.dart app/lib/main.dart
+          mkdir -p app/assets
+          cp wikalive_logo.png app/assets/wikalive_logo.png
 
           python3 - <<'PYFIX'
           from pathlib import Path
@@ -341,6 +344,20 @@ jobs:
           flutter pub add zego_uikit_prebuilt_live_streaming
           flutter pub add zego_uikit_signaling_plugin:2.8.21
 
+          python3 - <<'PYASSET'
+          from pathlib import Path
+          p = Path('pubspec.yaml')
+          text = p.read_text()
+          if '    - assets/wikalive_logo.png' not in text:
+              lines = text.splitlines()
+              idx = next(i for i, line in enumerate(lines) if line.strip() == 'flutter:')
+              insert = idx + 1
+              lines[insert:insert] = ['  assets:', '    - assets/wikalive_logo.png']
+              text = '\n'.join(lines) + '\n'
+          p.write_text(text)
+          PYASSET
+          test -f assets/wikalive_logo.png
+
           flutter pub get
 
 
@@ -612,3 +629,4 @@ jobs:
           name: WikaLive-release-apk
           path: app/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+          
