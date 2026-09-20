@@ -348,49 +348,25 @@ jobs:
           from pathlib import Path
           p = Path('pubspec.yaml')
           lines = p.read_text().splitlines()
-
-          # Add the logo under the existing flutter: section without
-          # disturbing uses-material-design or other Flutter settings.
-          if '    - assets/wikalive_logo.png' not in lines:
-              flutter_idx = next(
-                  i for i, line in enumerate(lines)
-                  if line.strip() == 'flutter:' and not line.startswith(' ')
-              )
-
-              # Find the end of the top-level flutter section.
-              end = flutter_idx + 1
-              while end < len(lines):
-                  line = lines[end]
-                  if line and not line.startswith((' ', '\t')):
-                      break
-                  end += 1
-
-              flutter_block = lines[flutter_idx + 1:end]
-              assets_pos = None
-              for j, line in enumerate(flutter_block):
-                  if line.strip() == 'uses-material-design: true':
-                      assets_pos = flutter_idx + 2 + j
-                      break
-
-              asset_lines = ['  assets:', '    - assets/wikalive_logo.png']
-              if assets_pos is not None:
-                  lines[assets_pos:assets_pos] = asset_lines
-              else:
-                  lines[end:end] = asset_lines
-
+          # Remove any previous WikaLive asset block, then add exactly one
+          # correctly-indented block directly under the generated flutter: key.
+          cleaned = []
+          i = 0
+          while i < len(lines):
+              if lines[i].strip() == 'assets:' and lines[i].startswith('  '):
+                  i += 1
+                  while i < len(lines) and (lines[i].startswith('    ') or lines[i].strip() == ''):
+                      i += 1
+                  continue
+              cleaned.append(lines[i])
+              i += 1
+          lines = cleaned
+          idx = next(i for i, line in enumerate(lines) if line.strip() == 'flutter:' and not line.startswith(' '))
+          lines[idx+1:idx+1] = ['  assets:', '    - assets/wikalive_logo.png']
           p.write_text('\n'.join(lines) + '\n')
-
-          # Show the final Flutter section for diagnostics.
-          print('--- pubspec Flutter section ---')
-          lines = p.read_text().splitlines()
-          start = next(i for i, line in enumerate(lines) if line.strip() == 'flutter:')
-          for line in lines[start:min(start + 12, len(lines))]:
-              print(line)
           PYASSET
+          grep -A4 '^flutter:' pubspec.yaml
           test -f assets/wikalive_logo.png
-
-          # Validate pubspec and resolve dependencies.
-          # Do not use `dart -e`: modern Dart CLI does not support that option.
           flutter pub get
 
 
@@ -459,7 +435,7 @@ jobs:
         working-directory: app
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          STORE_PASS: ${{ secrets.STORE_PASS }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
@@ -470,8 +446,8 @@ jobs:
             exit 1
           fi
 
-          if [ -z "$STORE_PASS" ]; then
-            echo "ERROR: STORE_PASS is missing."
+          if [ -z "$KEYSTORE_PASS" ]; then
+            echo "ERROR: KEYSTORE_PASS is missing."
             exit 1
           fi
 
@@ -495,7 +471,7 @@ jobs:
 
           keytool -list \
             -keystore android/app/upload-keystore.jks \
-            -storepass "$STORE_PASS" \
+            -storepass "$KEYSTORE_PASS" \
             -alias "$KEY_ALIAS" \
             -v | grep -E "Alias name:|Entry type:|SHA1:"
 
@@ -512,9 +488,7 @@ jobs:
         run: |
           set -e
 
-          flutter analyze \
-            --no-fatal-infos \
-            --no-fatal-warnings
+          flutter analyze --no-fatal-infos --no-fatal-warnings
 
 
       # ==========================================
@@ -527,7 +501,7 @@ jobs:
 
           # Gradle automatically reads ORG_GRADLE_PROJECT_*
           # as Gradle project properties.
-          ORG_GRADLE_PROJECT_storePassword: ${{ secrets.STORE_PASS }}
+          ORG_GRADLE_PROJECT_storePassword: ${{ secrets.KEYSTORE_PASS }}
           ORG_GRADLE_PROJECT_keyAlias: ${{ secrets.KEY_ALIAS }}
           ORG_GRADLE_PROJECT_keyPassword: ${{ secrets.KEY_PASSWORD }}
         run: |
@@ -621,4 +595,37 @@ jobs:
           AAB="app/build/app/outputs/bundle/release/app-release.aab"
           test -f "$AAB"
           echo "WIKALIVE AAB CREATED SUCCESSFULLY"
-          ls -lh "$AA          
+          ls -lh "$AAB"
+
+
+      # ==========================================
+      # 11. VERIFY APK FILE
+      # ==========================================
+      - name: Verify APK
+        run: |
+          set -e
+
+          APK="app/build/app/outputs/flutter-apk/app-release.apk"
+
+          test -f "$APK"
+
+          echo "=========================================="
+          echo "WIKALIVE APK CREATED SUCCESSFULLY"
+          echo "=========================================="
+
+          ls -lh "$APK"
+
+
+      # ==========================================
+      # 13. UPLOAD AAB
+      # ==========================================
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: WikaLive-release-aab
+          path: app/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+
+      # ==========================================
+              
