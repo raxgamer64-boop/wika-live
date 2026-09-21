@@ -606,4 +606,59 @@ jobs:
           echo "Kotlin: 2.3.21"
           echo "JVM: 17"
           echo "Google Sign-In: 7.2.0"
-      
+          echo "Firebase: ENABLED"
+          echo "ZEGOCLOUD: ENABLED"
+          echo "Release signing: ENABLED"
+          echo "AndroidX: ENABLED"
+          echo "=========================================="
+
+          echo "=========================================="
+          echo "BUILDING WIKALIVE RELEASE AAB"
+          echo "=========================================="
+
+          flutter build appbundle \
+            --release \
+            --dart-define=ZEGO_APP_SIGN="$ZEGO_APP_SIGN"
+
+          echo "=========================================="
+          echo "BUILDING WIKALIVE RELEASE APK"
+          echo "=========================================="
+
+          flutter build apk \
+            --release \
+            --dart-define=ZEGO_APP_SIGN="$ZEGO_APP_SIGN"
+
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          AAB="build/app/outputs/bundle/release/app-release.aab"
+          test -f "$APK"
+          test -f "$AAB"
+
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$BUILD_TOOLS/apksigner" verify --verbose "$APK"
+          "$BUILD_TOOLS/apksigner" verify --print-certs "$APK"
+          echo "EXPECTED RELEASE SHA-1: 70:4E:1C:17:A1:9A:C8:44:3D:6B:FE:53:40:5E:32:A3:9F:2A:0F:F5"
+          echo "WIKALIVE APK + AAB VERIFIED"
+
+
+      # ==========================================
+      # 10. UPLOAD AAB
+      # ==========================================
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: WikaLive-release-aab
+          path: app/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+
+
+      # ==========================================
+      # 11. UPLOAD APK
+      # ==========================================
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WikaLive-release-apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
