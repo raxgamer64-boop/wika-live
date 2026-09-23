@@ -449,7 +449,7 @@ jobs:
 
           echo '--- FINAL PUBSPEC FLUTTER SECTION ---'
           sed -n '/^flutter:/,/^[^[:space:]]/p' pubspec.yaml | head -20
-          test -f assets/wikalive_logo.png
+          test -f assets/live_ui/logo.png
           test -f assets/live_ui/ic_guardian_gold.png
 
           flutter pub get
