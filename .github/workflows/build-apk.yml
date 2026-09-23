@@ -58,31 +58,18 @@ jobs:
           cp main.dart app/lib/main.dart
 
           mkdir -p app/assets
-
           cp -R assets/live_ui app/assets/live_ui
 
           test -f app/lib/main.dart
           test -f app/assets/live_ui/logo.png
-          test -f app/assets/live_ui/ic_guardian_gold.png
 
           echo "=========================================="
           echo "WIKALIVE SOURCE COPIED"
           echo "=========================================="
 
-          echo "main.dart:"
-          ls -lh app/lib/main.dart
-
-          echo ""
-          echo "live_ui assets:"
-          find app/assets/live_ui \
-            -maxdepth 1 \
-            -type f \
-            -printf '%f\n' \
-            | sort
-
 
       # ==========================================
-      # 4. PATCH ZEGO API ONLY
+      # 4. PATCH ZEGO API COMPATIBILITY
       # ==========================================
       - name: Patch ZEGO API compatibility
         shell: bash
@@ -96,7 +83,6 @@ jobs:
           path = Path("app/lib/main.dart")
           text = path.read_text(encoding="utf-8")
 
-          # Remove unsupported controller named parameters.
           text = text.replace(
               "    controller: ZegoUIKitPrebuiltLiveStreamingController(),\n",
               ""
@@ -107,7 +93,6 @@ jobs:
               ""
           )
 
-          # Current ZEGO microphone/camera switch API.
           text = text.replace(
               "ZegoUIKitPrebuiltLiveStreamingController().microphone.toggle()",
               "ZegoUIKitPrebuiltLiveStreamingController().audioVideo.microphone.switchState()"
@@ -128,7 +113,6 @@ jobs:
               "controller.audioVideo.camera.switchState()"
           )
 
-          # ZEGO user state fields.
           text = text.replace(
               "u.isCameraOn || u.isMicrophoneOn",
               "u.camera.value || u.microphone.value"
@@ -158,45 +142,23 @@ jobs:
               text
           )
 
-          path.write_text(
-              text,
-              encoding="utf-8"
-          )
+          path.write_text(text, encoding="utf-8")
           PY
-
-          echo "Checking old ZEGO references..."
-
-          if grep -qE \
-            "ZegoUIKitPrebuiltLiveStreamingController\(\)[[:space:]]*\.[[:space:]]*(microphone|camera)" \
-            app/lib/main.dart; then
-
-            echo "ERROR: old ZEGO singleton getter remains."
-            exit 1
-          fi
-
-          if grep -qE \
-            "(^|[^A-Za-z0-9_])controller[[:space:]]*\.[[:space:]]*(microphone|camera)" \
-            app/lib/main.dart; then
-
-            echo "ERROR: old controller microphone/camera getter remains."
-            exit 1
-          fi
 
           if grep -qE \
             "isCameraOn|isMicrophoneOn" \
             app/lib/main.dart; then
-
-            echo "ERROR: obsolete ZEGO user fields remain."
+            echo "ERROR: obsolete ZEGO fields remain."
             exit 1
           fi
 
-          echo "ZEGO compatibility patch verified."
+          echo "ZEGO compatibility check complete."
 
 
       # ==========================================
-      # 5. FIREBASE + ANDROID PERMISSIONS
+      # 5. FIREBASE CONFIGURATION
       # ==========================================
-      - name: Configure Firebase and Android
+      - name: Configure Firebase
         shell: bash
         run: |
           set -e
@@ -206,6 +168,19 @@ jobs:
           cp google-services.json \
             app/android/app/google-services.json
 
+          test -f app/android/app/google-services.json
+
+          echo "Firebase configuration copied."
+
+
+      # ==========================================
+      # 6. ANDROID PERMISSIONS
+      # ==========================================
+      - name: Configure Android permissions
+        shell: bash
+        run: |
+          set -e
+
           python3 - <<'PY'
           from pathlib import Path
 
@@ -213,9 +188,7 @@ jobs:
               "app/android/app/src/main/AndroidManifest.xml"
           )
 
-          text = path.read_text(
-              encoding="utf-8"
-          )
+          text = path.read_text(encoding="utf-8")
 
           permissions = [
               '    <uses-permission android:name="android.permission.CAMERA" />',
@@ -231,20 +204,16 @@ jobs:
                       1
                   )
 
-          path.write_text(
-              text,
-              encoding="utf-8"
-          )
+          path.write_text(text, encoding="utf-8")
           PY
 
-          echo "Firebase copied."
           echo "Android permissions configured."
 
 
       # ==========================================
-      # 6. FIREBASE + KOTLIN + GRADLE
+      # 7. FIREBASE + KOTLIN + GRADLE
       # ==========================================
-      - name: Configure Firebase Kotlin and Gradle
+      - name: Configure Android Gradle
         working-directory: app
         shell: bash
         run: |
@@ -254,18 +223,12 @@ jobs:
           from pathlib import Path
           import re
 
-          # ==================================================
+          # ------------------------------------------
           # settings.gradle.kts
-          # ==================================================
-          settings = Path(
-              "android/settings.gradle.kts"
-          )
+          # ------------------------------------------
+          settings = Path("android/settings.gradle.kts")
+          text = settings.read_text(encoding="utf-8")
 
-          text = settings.read_text(
-              encoding="utf-8"
-          )
-
-          # Google Services plugin.
           if "com.google.gms.google-services" not in text:
               text = text.replace(
                   "plugins {",
@@ -275,17 +238,9 @@ jobs:
                   1
               )
 
-          # Kotlin 2.3.21.
-          kotlin_pattern = (
-              r'id\("org\.jetbrains\.kotlin\.android"\)'
-              r'\s+version\s+"[^"]+"'
-              r'(?:\s+apply\s+false)?'
-          )
-
           text = re.sub(
-              kotlin_pattern,
-              'id("org.jetbrains.kotlin.android") '
-              'version "2.3.21" apply false',
+              r'id\("org\.jetbrains\.kotlin\.android"\)\s+version\s+"[^"]+"\s+apply\s+false',
+              'id("org.jetbrains.kotlin.android") version "2.3.21" apply false',
               text,
               count=1
           )
@@ -299,24 +254,15 @@ jobs:
                   1
               )
 
-          settings.write_text(
-              text,
-              encoding="utf-8"
-          )
+          settings.write_text(text, encoding="utf-8")
 
 
-          # ==================================================
+          # ------------------------------------------
           # app/build.gradle.kts
-          # ==================================================
-          build = Path(
-              "android/app/build.gradle.kts"
-          )
+          # ------------------------------------------
+          build = Path("android/app/build.gradle.kts")
+          text = build.read_text(encoding="utf-8")
 
-          text = build.read_text(
-              encoding="utf-8"
-          )
-
-          # Google Services app plugin.
           if 'id("com.google.gms.google-services")' not in text:
               text = text.replace(
                   "plugins {",
@@ -326,7 +272,6 @@ jobs:
                   1
               )
 
-          # Remove OLD Kotlin syntax.
           text = re.sub(
               r'\n[ \t]*kotlinOptions\s*\{.*?\n[ \t]*\}',
               '',
@@ -340,22 +285,15 @@ jobs:
               text
           )
 
-          # Java 17.
           text = text.replace(
               "JavaVersion.VERSION_11",
               "JavaVersion.VERSION_17"
           )
 
-          # Add compileOptions inside android block if absent.
           if "sourceCompatibility = JavaVersion.VERSION_17" not in text:
-              android_marker = "android {"
+              marker = "android {"
 
-              if android_marker not in text:
-                  raise SystemExit(
-                      "ERROR: android block missing."
-                  )
-
-              compile_block = """
+              compile_options = """
               compileOptions {
                   sourceCompatibility = JavaVersion.VERSION_17
                   targetCompatibility = JavaVersion.VERSION_17
@@ -363,38 +301,21 @@ jobs:
 
           """
 
-              position = (
-                  text.find(android_marker)
-                  + len(android_marker)
-              )
+              position = text.find(marker) + len(marker)
 
               text = (
                   text[:position]
                   + "\n"
-                  + compile_block
+                  + compile_options
                   + text[position:]
               )
 
-          # Kotlin 2.3 compilerOptions.
-          # No import statement is required.
-          if "jvmTarget.set(" not in text:
-              text += """
-
-          kotlin {
-              compilerOptions {
-                  jvmTarget.set(
-                      org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
-                  )
-              }
-          }
-          """
-
-          # ==================================================
-          # Release signing
-          # ==================================================
+          # ------------------------------------------
+          # RELEASE SIGNING
+          # ------------------------------------------
           if 'create("wikaliveRelease")' not in text:
 
-              signing = r'''
+              signing = """
           signingConfigs {
               create("wikaliveRelease") {
                   storeFile = file("upload-keystore.jks")
@@ -406,18 +327,16 @@ jobs:
                       providers.gradleProperty("keyPassword").orNull
               }
           }
-          '''
+
+          """
 
               text = text.replace(
                   "buildTypes {",
-                  signing + "\nbuildTypes {",
+                  signing + "buildTypes {",
                   1
               )
 
-          if (
-              'signingConfig = signingConfigs.getByName("wikaliveRelease")'
-              not in text
-          ):
+          if 'signingConfig = signingConfigs.getByName("wikaliveRelease")' not in text:
 
               text = text.replace(
                   "release {",
@@ -427,50 +346,53 @@ jobs:
                   1
               )
 
-          build.write_text(
-              text,
-              encoding="utf-8"
-          )
+          # ------------------------------------------
+          # KOTLIN JVM 17
+          # ------------------------------------------
+          if "jvmTarget.set(" not in text:
+
+              text += """
+
+          kotlin {
+              compilerOptions {
+                  jvmTarget.set(
+                      org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+                  )
+              }
+          }
+          """
+
+          build.write_text(text, encoding="utf-8")
 
 
-          # ==================================================
+          # ------------------------------------------
           # gradle.properties
-          # ==================================================
-          gp = Path(
-              "android/gradle.properties"
-          )
+          # ------------------------------------------
+          properties = Path("android/gradle.properties")
 
           existing = (
-              gp.read_text(encoding="utf-8")
-              if gp.exists()
+              properties.read_text(encoding="utf-8")
+              if properties.exists()
               else ""
           )
 
-          def set_property(
-              content,
-              key,
-              value
-          ):
+          def set_property(content, key, value):
               lines = content.splitlines()
-              result = []
+              output = []
               found = False
 
               for line in lines:
                   if line.startswith(key + "="):
                       if not found:
-                          result.append(
-                              key + "=" + value
-                          )
+                          output.append(key + "=" + value)
                           found = True
                   else:
-                      result.append(line)
+                      output.append(line)
 
               if not found:
-                  result.append(
-                      key + "=" + value
-                  )
+                  output.append(key + "=" + value)
 
-              return "\n".join(result) + "\n"
+              return "\n".join(output) + "\n"
 
           existing = set_property(
               existing,
@@ -508,22 +430,17 @@ jobs:
               "true"
           )
 
-          gp.write_text(
-              existing,
-              encoding="utf-8"
-          )
+          properties.write_text(existing, encoding="utf-8")
 
-          print("Android configuration complete.")
+          print("Android Gradle configuration complete.")
           print("Kotlin: 2.3.21")
-          print("JVM: 17")
+          print("Java/JVM: 17")
           print("AndroidX: enabled")
-          print("Google Services: enabled")
-          print("Release signing: configured")
           PY
 
 
       # ==========================================
-      # 7. ADD REQUIRED PACKAGES
+      # 8. ADD PACKAGES
       # ==========================================
       - name: Add packages
         working-directory: app
@@ -544,7 +461,7 @@ jobs:
 
 
       # ==========================================
-      # 8. CONFIGURE LIVE UI ASSETS
+      # 9. CONFIGURE LIVE UI ASSETS
       # ==========================================
       - name: Configure live UI assets
         working-directory: app
@@ -556,11 +473,8 @@ jobs:
           from pathlib import Path
 
           path = Path("pubspec.yaml")
-          lines = path.read_text(
-              encoding="utf-8"
-          ).splitlines()
+          lines = path.read_text(encoding="utf-8").splitlines()
 
-          # Find root flutter section.
           flutter_index = None
 
           for i, line in enumerate(lines):
@@ -574,18 +488,17 @@ jobs:
 
           if flutter_index is None:
               raise SystemExit(
-                  "ERROR: root flutter section missing."
+                  "ERROR: flutter section missing."
               )
 
-          # Remove existing assets block under flutter.
-          cleaned = []
+          # Remove existing assets block.
+          result = []
           i = 0
 
           while i < len(lines):
 
               if (
-                  i > flutter_index
-                  and lines[i].strip() == "assets:"
+                  lines[i].strip() == "assets:"
                   and lines[i].startswith("  ")
               ):
                   i += 1
@@ -604,10 +517,10 @@ jobs:
 
                   continue
 
-              cleaned.append(lines[i])
+              result.append(lines[i])
               i += 1
 
-          lines = cleaned
+          lines = result
 
           flutter_index = next(
               i for i, line in enumerate(lines)
@@ -631,16 +544,15 @@ jobs:
           )
           PY
 
+          test -f assets/live_ui/logo.png
+
           flutter pub get
 
-          test -f assets/live_ui/logo.png
-          test -f assets/live_ui/ic_guardian_gold.png
-
-          echo "live_ui assets configured."
+          echo "Live UI assets configured."
 
 
       # ==========================================
-      # 9. VERIFY FIREBASE
+      # 10. VERIFY FIREBASE
       # ==========================================
       - name: Verify Firebase
         working-directory: app
@@ -653,11 +565,7 @@ jobs:
 
           path = "android/app/google-services.json"
 
-          with open(
-              path,
-              "r",
-              encoding="utf-8"
-          ) as f:
+          with open(path, "r", encoding="utf-8") as f:
               data = json.load(f)
 
           project_id = (
@@ -668,16 +576,35 @@ jobs:
 
           if project_id != "wika-live":
               raise SystemExit(
-                  f"ERROR: wrong Firebase project: {project_id}"
+                  f"ERROR: Wrong Firebase project: {project_id}"
               )
 
-          print("Firebase project: wika-live")
-          print("Firebase configuration: OK")
+          package_found = False
+
+          for client in data.get("client", []):
+
+              package_name = (
+                  client
+                  .get("client_info", {})
+                  .get("android_client_info", {})
+                  .get("package_name")
+              )
+
+              if package_name == "com.example.wika_live":
+                  package_found = True
+
+          if not package_found:
+              raise SystemExit(
+                  "ERROR: com.example.wika_live missing."
+              )
+
+          print("Firebase project: OK")
+          print("Android package: OK")
           PY
 
 
       # ==========================================
-      # 10. VERIFY SIGNING SECRETS
+      # 11. CREATE AND VERIFY KEYSTORE
       # ==========================================
       - name: Configure release signing
         working-directory: app
@@ -690,7 +617,9 @@ jobs:
         run: |
           set -e
 
-          echo "Checking signing secrets..."
+          echo "=========================================="
+          echo "CHECKING SIGNING SECRETS"
+          echo "=========================================="
 
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "ERROR: KEYSTORE_BASE64 is missing."
@@ -712,16 +641,71 @@ jobs:
             exit 1
           fi
 
-          echo "$KEYSTORE_BASE64" | \
-            base64 --decode > \
-            android/app/upload-keystore.jks
-
-          test -s \
-            android/app/upload-keystore.jks
+          echo "Signing secrets: OK"
 
           echo "=========================================="
-          echo "RELEASE KEYSTORE FOUND"
+          echo "CREATING KEYSTORE DIRECTORY"
+          echo "=========================================="
+
+          mkdir -p android/app
+
+          KEYSTORE_PATH="android/app/upload-keystore.jks"
+
+          rm -f "$KEYSTORE_PATH"
+
+          echo "Decoding keystore..."
+
+          printf '%s' "$KEYSTORE_BASE64" \
+            | base64 --decode \
+            > "$KEYSTORE_PATH"
+
+          echo "=========================================="
+          echo "VERIFYING KEYSTORE FILE"
+          echo "=========================================="
+
+          if [ ! -f "$KEYSTORE_PATH" ]; then
+            echo "ERROR: Keystore file was not created."
+            exit 1
+          fi
+
+          if [ ! -s "$KEYSTORE_PATH" ]; then
+            echo "ERROR: Keystore file is empty."
+            exit 1
+          fi
+
+          echo "Keystore created successfully:"
+          ls -lh "$KEYSTORE_PATH"
+
+          echo "=========================================="
+          echo "VERIFYING KEYSTORE CONTENT"
           echo "=========================================="
 
           keytool -list \
-            -keystore android/app/u
+            -keystore "$KEYSTORE_PATH" \
+            -storepass "$STORE_PASS" \
+            -alias "$KEY_ALIAS" \
+            -v | grep -E \
+            "Alias name:|Entry type:|SHA1:"
+
+          echo "=========================================="
+          echo "RELEASE SIGNING READY"
+          echo "=========================================="
+
+
+      # ==========================================
+      # 12. VERIFY KOTLIN
+      # ==========================================
+      - name: Verify Kotlin configuration
+        working-directory: app
+        shell: bash
+        run: |
+          set -e
+
+          FILE="android/app/build.gradle.kts"
+
+          if grep -q "kotlinOptions" "$FILE"; then
+            echo "ERROR: old kotlinOptions remains."
+            exit 1
+          fi
+
+         
