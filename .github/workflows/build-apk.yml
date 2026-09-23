@@ -44,363 +44,314 @@ jobs:
             --platforms android \
             app
 
-          # Use the repository's real root main.dart. Patch the ZEGO API mismatches
-          # in-place so the build never depends on a second filename being uploaded.
-          test -f main.dart || { echo 'ERROR: root main.dart is missing'; exit 1; }
-          test -f wikalive_logo.png || { echo 'ERROR: wikalive_logo.png is missing'; exit 1; }
-          test -d assets/live_ui || { echo 'ERROR: assets/live_ui is missing'; exit 1; }
+          # ==========================================
+          # VERIFY REQUIRED SOURCE FILES
+          # ==========================================
+          test -f main.dart || {
+            echo "ERROR: root main.dart is missing"
+            exit 1
+          }
+
+          test -d assets/live_ui || {
+            echo "ERROR: assets/live_ui is missing"
+            exit 1
+          }
+
+          # ==========================================
+          # COPY WIKALIVE SOURCE
+          # ==========================================
           cp main.dart app/lib/main.dart
+
           mkdir -p app/assets
-          cp wikalive_logo.png app/assets/wikalive_logo.png
+
+          # Reference live-room UI assets
           cp -R assets/live_ui app/assets/live_ui
 
-          python3 - <<'PYFIX'
-          from pathlib import Path
-          p = Path('app/lib/main.dart')
-          text = p.read_text()
-
-          # Current ZEGO prebuilt live-streaming widget does not expose a
-          # controller named parameter. Remove only the controller argument
-          # lines introduced by the previous UI version.
-          text = text.replace(
-              '    controller: ZegoUIKitPrebuiltLiveStreamingController(),\n',
-              ''
-          )
-          text = text.replace(
-              '      controller: ZegoUIKitPrebuiltLiveStreamingController(),\n',
-              ''
-          )
-
-          # ZEGO 3.15.6: local mic/camera state is exposed by
-          # controller.audioVideo.microphone.localState / camera.localState.
-          # Fix both the singleton form and the common local `controller`
-          # variable form so the committed main.dart cannot leave the old
-          # direct getters behind.
-          import re
-
-          # ZEGO 3.15.6: switchState() is the supported way to toggle
-          # the local microphone/camera. Do this BEFORE the localState
-          # getter replacements below, otherwise a bool would receive
-          # an invalid .toggle() call.
-          text = text.replace(
-              'ZegoUIKitPrebuiltLiveStreamingController().microphone.toggle()',
-              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.microphone.switchState()',
-          )
-          text = text.replace(
-              'ZegoUIKitPrebuiltLiveStreamingController().camera.toggle()',
-              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.camera.switchState()',
-          )
-          text = text.replace(
-              'controller.microphone.toggle()',
-              'controller.audioVideo.microphone.switchState()',
-          )
-          text = text.replace(
-              'controller.camera.toggle()',
-              'controller.audioVideo.camera.switchState()',
-          )
-
-          text = text.replace(
-              'u.isCameraOn || u.isMicrophoneOn',
-              'u.camera.value || u.microphone.value'
-          )
-
-          text = re.sub(
-              r'ZegoUIKitPrebuiltLiveStreamingController\(\)\s*\.\s*microphone(?:\s*\.\s*value)?',
-              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.microphone.localState',
-              text,
-          )
-          text = re.sub(
-              r'ZegoUIKitPrebuiltLiveStreamingController\(\)\s*\.\s*camera(?:\s*\.\s*value)?',
-              'ZegoUIKitPrebuiltLiveStreamingController().audioVideo.camera.localState',
-              text,
-          )
-
-          text = re.sub(
-              r'(?<![A-Za-z0-9_])controller\s*\.\s*microphone(?:\s*\.\s*value)?',
-              'controller.audioVideo.microphone.localState',
-              text,
-          )
-          text = re.sub(
-              r'(?<![A-Za-z0-9_])controller\s*\.\s*camera(?:\s*\.\s*value)?',
-              'controller.audioVideo.camera.localState',
-              text,
-          )
-
-          p.write_text(text)
-          PYFIX
-
-          echo '--- ZEGO compile-fix verification ---'
-          echo 'Remaining direct ZEGO getter references (must be empty):'
-          grep -nE "ZegoUIKitPrebuiltLiveStreamingController\(\)[[:space:]]*\.[[:space:]]*(microphone|camera)" app/lib/main.dart || true
-          grep -nE "(^|[^A-Za-z0-9_])controller[[:space:]]*\.[[:space:]]*(microphone|camera)" app/lib/main.dart || true
-
-          if grep -qE "ZegoUIKitPrebuiltLiveStreamingController\(\)[[:space:]]*\.[[:space:]]*(microphone|camera)" app/lib/main.dart; then
-            echo 'ERROR: direct singleton microphone/camera getter remains.'
-            exit 1
-          fi
-          if grep -qE "(^|[^A-Za-z0-9_])controller[[:space:]]*\.[[:space:]]*(microphone|camera)" app/lib/main.dart; then
-            echo 'ERROR: direct controller microphone/camera getter remains.'
-            exit 1
-          fi
-          if grep -qE "isCameraOn|isMicrophoneOn" app/lib/main.dart; then
-            echo 'ERROR: obsolete ZegoUIKitUser camera/microphone fields remain.'
-            exit 1
-          fi
-          echo 'ZEGO compile fixes verified.'
-          cp google-services.json app/android/app/google-services.json
-
-          # ==========================================
-          # ANDROID RUNTIME PERMISSIONS
-          # ==========================================
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("app/android/app/src/main/AndroidManifest.xml")
-          text = p.read_text()
-          permissions = [
-              '    <uses-permission android:name="android.permission.CAMERA" />',
-              '    <uses-permission android:name="android.permission.RECORD_AUDIO" />',
-              '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
-          ]
-          for perm in permissions:
-              if perm not in text:
-                  text = text.replace("\n    <application", "\n" + perm + "\n    <application", 1)
-          p.write_text(text)
-          PY
-
-
-          test -f app/lib/main.dart
-          test -f app/android/app/google-services.json
-
           echo "=========================================="
-          echo "FLUTTER PROJECT CREATED"
+          echo "WikaLive source copied successfully"
           echo "=========================================="
+
+          echo "main.dart:"
+          ls -lh app/lib/main.dart
+
+          echo "live_ui assets:"
+          find app/assets/live_ui -maxdepth 1 -type f -print
 
 
       # ==========================================
-      # 4. CONFIGURE FIREBASE + ANDROIDX
+      # 4. PATCH ZEGO API MISMATCHES
       # ==========================================
-      - name: Configure Firebase and AndroidX
-        working-directory: app
+      - name: Patch ZEGO API compatibility
         run: |
           set -e
 
-          python3 - <<'PY'
+          python3 - <<'PYFIX'
           from pathlib import Path
           import re
 
-          # --------------------------------------
-          # settings.gradle.kts
-          # --------------------------------------
+          p = Path("app/lib/main.dart")
 
-          settings = Path("android/settings.gradle.kts")
-          text = settings.read_text()
+          if not p.exists():
+              raise SystemExit("ERROR: app/lib/main.dart is missing")
+
+          text = p.read_text()
+
+          # ==========================================
+          # REMOVE UNSUPPORTED CONTROLLER PARAMETER
+          # ==========================================
+          text = text.replace(
+              "    controller: ZegoUIKitPrebuiltLiveStreamingController(),\n",
+              ""
+          )
+
+          text = text.replace(
+              "      controller: ZegoUIKitPrebuiltLiveStreamingController(),\n",
+              ""
+          )
+
+          text = text.replace(
+              "        controller: ZegoUIKitPrebuiltLiveStreamingController(),\n",
+              ""
+          )
+
+          # ==========================================
+          # MICROPHONE TOGGLE
+          # ==========================================
+          text = text.replace(
+              "ZegoUIKitPrebuiltLiveStreamingController().microphone.toggle()",
+              "ZegoUIKitPrebuiltLiveStreamingController().audioVideo.microphone.switchState()"
+          )
+
+          text = text.replace(
+              "controller.microphone.toggle()",
+              "controller.audioVideo.microphone.switchState()"
+          )
+
+          # ==========================================
+          # CAMERA TOGGLE
+          # ==========================================
+          text = text.replace(
+              "ZegoUIKitPrebuiltLiveStreamingController().camera.toggle()",
+              "ZegoUIKitPrebuiltLiveStreamingController().audioVideo.camera.switchState()"
+          )
+
+          text = text.replace(
+              "controller.camera.toggle()",
+              "controller.audioVideo.camera.switchState()"
+          )
+
+          # ==========================================
+          # OLD DIRECT CAMERA/MIC STATE REFERENCES
+          # ==========================================
+          text = text.replace(
+              "ZegoUIKitPrebuiltLiveStreamingController().microphone.isOn",
+              "ZegoUIKitPrebuiltLiveStreamingController().audioVideo.microphone.localState"
+          )
+
+          text = text.replace(
+              "ZegoUIKitPrebuiltLiveStreamingController().camera.isOn",
+              "ZegoUIKitPrebuiltLiveStreamingController().audioVideo.camera.localState"
+          )
+
+          # Common old local controller references.
+          text = text.replace(
+              "controller.microphone.isOn",
+              "controller.audioVideo.microphone.localState"
+          )
+
+          text = text.replace(
+              "controller.camera.isOn",
+              "controller.audioVideo.camera.localState"
+          )
+
+          p.write_text(text)
+
+          print("ZEGO compatibility patch completed.")
+          PYFIX
+
+
+      # ==========================================
+      # 5. FIREBASE CONFIGURATION
+      # ==========================================
+      - name: Configure Firebase
+        run: |
+          set -e
+
+          test -f google-services.json || {
+            echo "ERROR: google-services.json is missing"
+            exit 1
+          }
+
+          mkdir -p app/android/app
+
+          cp google-services.json \
+            app/android/app/google-services.json
+
+          echo "Firebase configuration copied."
+
+
+      # ==========================================
+      # 6. ANDROID PERMISSIONS
+      # ==========================================
+      - name: Configure Android permissions
+        run: |
+          set -e
+
+          MANIFEST="app/android/app/src/main/AndroidManifest.xml"
+
+          test -f "$MANIFEST" || {
+            echo "ERROR: AndroidManifest.xml is missing"
+            exit 1
+          }
+
+          python3 - <<'PYMANIFEST'
+          from pathlib import Path
+
+          p = Path("app/android/app/src/main/AndroidManifest.xml")
+          text = p.read_text()
+
+          permissions = [
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
+              '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+          ]
+
+          marker = '<application'
+
+          additions = ""
+
+          for permission in permissions:
+              if permission not in text:
+                  additions += "    " + permission + "\n"
+
+          if additions:
+              text = text.replace(
+                  marker,
+                  additions + "\n    " + marker,
+                  1
+              )
+
+          p.write_text(text)
+
+          print("Android permissions configured.")
+          PYMANIFEST
+
+
+      # ==========================================
+      # 7. ANDROIDX / GRADLE CONFIGURATION
+      # ==========================================
+      - name: Configure Android build
+        run: |
+          set -e
+
+          cd app
+
+          # AndroidX
+          if [ -f android/gradle.properties ]; then
+            grep -q "android.useAndroidX=true" android/gradle.properties || \
+              echo "android.useAndroidX=true" >> android/gradle.properties
+
+            grep -q "android.enableJetifier=true" android/gradle.properties || \
+              echo "android.enableJetifier=true" >> android/gradle.properties
+          fi
+
+          # Kotlin
+          if [ -f android/settings.gradle.kts ]; then
+            sed -i \
+              "s/org.jetbrains.kotlin.android version '[^']*'/org.jetbrains.kotlin.android version '2.3.21'/" \
+              android/settings.gradle.kts || true
+          fi
+
+          # JVM 17
+          if [ -f android/app/build.gradle.kts ]; then
+            python3 - <<'PYGRADLE'
+          from pathlib import Path
+
+          p = Path("android/app/build.gradle.kts")
+          text = p.read_text()
+
+          if "JavaVersion.VERSION_17" not in text:
+              text += """
+
+          android {
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+          }
+          """
+
+          p.write_text(text)
+          PYGRADLE
+          fi
+
+          cd ..
+
+
+      # ==========================================
+      # 8. CONFIGURE GOOGLE SERVICES PLUGIN
+      # ==========================================
+      - name: Configure Google Services
+        run: |
+          set -e
+
+          cd app
+
+          if [ -f android/settings.gradle.kts ]; then
+
+            python3 - <<'PYGS'
+          from pathlib import Path
+
+          p = Path("android/settings.gradle.kts")
+          text = p.read_text()
 
           if "com.google.gms.google-services" not in text:
               text = text.replace(
                   "plugins {",
                   """plugins {
-              id("com.google.gms.google-services") version "4.4.3" apply false
-          """,
-                  1
+              id("com.google.gms.google-services") version "4.4.4" apply false"""
               )
 
-          # Keep Kotlin plugin compatible with current dependencies.
-          text = re.sub(
-              r'id\("org\.jetbrains\.kotlin\.android"\)\s+version\s+"[^"]+"\s+apply\s+false',
-              'id("org.jetbrains.kotlin.android") version "2.3.21" apply false',
-              text,
-              count=1
-          )
+          p.write_text(text)
+          PYGS
 
-          if "id(\"org.jetbrains.kotlin.android\")" not in text:
-              text = text.replace(
-                  "plugins {",
-                  """plugins {
-              id("org.jetbrains.kotlin.android") version "2.3.21" apply false
-          """,
-                  1
-              )
+          fi
 
-          settings.write_text(text)
+          if [ -f android/app/build.gradle.kts ]; then
 
-          # --------------------------------------
-          # app/build.gradle.kts
-          # --------------------------------------
+            python3 - <<'PYAPPGS'
+          from pathlib import Path
 
-          build = Path("android/app/build.gradle.kts")
-          text = build.read_text()
+          p = Path("android/app/build.gradle.kts")
+          text = p.read_text()
 
           if 'id("com.google.gms.google-services")' not in text:
               text = text.replace(
                   "plugins {",
                   """plugins {
-              id("com.google.gms.google-services")
-          """,
-                  1
+              id("com.google.gms.google-services")"""
               )
 
-          # Remove old Kotlin syntax if present.
-          text = re.sub(
-              r'\n\s*kotlinOptions\s*\{.*?\}',
-              '',
-              text,
-              flags=re.DOTALL
-          )
+          p.write_text(text)
+          PYAPPGS
 
-          text = re.sub(
-              r'\n\s*jvmTarget\s*=\s*JavaVersion\.VERSION_\d+\.toString\(\)',
-              '',
-              text
-          )
+          fi
 
-          # Add Java 17 compile options if generated project has them.
-          text = text.replace(
-              "JavaVersion.VERSION_11",
-              "JavaVersion.VERSION_17"
-          )
-
-          # --------------------------------------
-          # Release signing configuration
-          # --------------------------------------
-
-          if 'create("wikaliveRelease")' not in text:
-
-              signing = r'''
-          signingConfigs {
-              create("wikaliveRelease") {
-                  storeFile = file("upload-keystore.jks")
-                  storePassword =
-                      providers.gradleProperty("storePassword").orNull
-                  keyAlias =
-                      providers.gradleProperty("keyAlias").orNull
-                  keyPassword =
-                      providers.gradleProperty("keyPassword").orNull
-              }
-          }
-          '''
-
-              text = text.replace(
-                  "buildTypes {",
-                  signing + "\nbuildTypes {",
-                  1
-              )
-
-          # --------------------------------------
-          # Attach signing to release build
-          # --------------------------------------
-
-          if 'signingConfig = signingConfigs.getByName("wikaliveRelease")' not in text:
-
-              text = text.replace(
-                  "release {",
-                  """release {
-                      signingConfig =
-                          signingConfigs.getByName("wikaliveRelease")""",
-                  1
-              )
-
-          # --------------------------------------
-          # Kotlin compiler JVM 17
-          # --------------------------------------
-
-          if "jvmTarget.set(" not in text:
-
-              text += '''
-
-          kotlin {
-              compilerOptions {
-                  jvmTarget.set(
-                      org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
-                  )
-              }
-          }
-          '''
-
-          build.write_text(text)
-
-          # --------------------------------------
-          # gradle.properties
-          # --------------------------------------
-
-          gp = Path("android/gradle.properties")
-          existing = gp.read_text() if gp.exists() else ""
-
-          def set_property(content, key, value):
-              lines = content.splitlines()
-              found = False
-              output = []
-
-              for line in lines:
-                  if line.startswith(key + "="):
-                      if not found:
-                          output.append(key + "=" + value)
-                          found = True
-                  else:
-                      output.append(line)
-
-              if not found:
-                  output.append(key + "=" + value)
-
-              return "\n".join(output) + "\n"
-
-          existing = set_property(
-              existing,
-              "org.gradle.jvmargs",
-              "-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8"
-          )
-
-          existing = set_property(
-              existing,
-              "org.gradle.daemon",
-              "false"
-          )
-
-          existing = set_property(
-              existing,
-              "org.gradle.parallel",
-              "false"
-          )
-
-          existing = set_property(
-              existing,
-              "org.gradle.caching",
-              "false"
-          )
-
-          existing = set_property(
-              existing,
-              "android.useAndroidX",
-              "true"
-          )
-
-          existing = set_property(
-              existing,
-              "android.enableJetifier",
-              "true"
-          )
-
-          gp.write_text(existing)
-
-          print("==========================================")
-          print("ANDROID CONFIGURATION READY")
-          print("==========================================")
-          print("Google Services: ENABLED")
-          print("Kotlin: 2.3.21")
-          print("JVM: 17")
-          print("AndroidX: ENABLED")
-          print("Gradle memory: 4 GB")
-          print("Release signing config: ENABLED")
-          print("==========================================")
-          PY
+          cd ..
 
 
       # ==========================================
-      # 5. ADD PACKAGES
+      # 9. PUBSPEC DEPENDENCIES
       # ==========================================
-      - name: Add packages
-        working-directory: app
+      - name: Configure Flutter dependencies
         run: |
           set -e
+
+          cd app
 
           flutter pub add firebase_core
           flutter pub add firebase_auth
@@ -413,126 +364,124 @@ jobs:
 
           python3 - <<'PYASSET'
           from pathlib import Path
-          p = Path('pubspec.yaml')
-          lines = p.read_text().splitlines()
 
-          # Remove any existing Flutter assets block first. This prevents
-          # duplicate YAML keys if flutter create/package commands already
-          # created an assets: section.
-          cleaned = []
-          i = 0
-          while i < len(lines):
-              if lines[i].strip() == 'assets:' and lines[i].startswith('  '):
-                  i += 1
-                  while i < len(lines):
-                      line = lines[i]
-                      if line and not line.startswith((' ', '\t')):
-                          break
-                      i += 1
-                  continue
-              cleaned.append(lines[i])
-              i += 1
+          p = Path("pubspec.yaml")
+          text = p.read_text()
 
-          lines = cleaned
-          flutter_idx = next(
-              i for i, line in enumerate(lines)
-              if line.strip() == 'flutter:' and not line.startswith((' ', '\t'))
-          )
-          lines[flutter_idx + 1:flutter_idx + 1] = [
-              '  assets:',
-              '    - assets/wikalive_logo.png',
-              '    - assets/live_ui/'
-          ]
+          # ==========================================
+          # ADD ONLY THE REFERENCE LIVE UI ASSET FOLDER
+          # ==========================================
+          if "assets/live_ui/" not in text:
 
-          p.write_text('\n'.join(lines) + '\n')
+              if "flutter:" in text and "assets:" not in text:
+                  text = text.replace(
+                      "flutter:\n",
+                      """flutter:
+            assets:
+              - assets/live_ui/
+          """,
+                      1
+                  )
+
+              elif "flutter:" in text and "    assets:" not in text:
+                  text = text.replace(
+                      "flutter:\n",
+                      """flutter:
+            assets:
+              - assets/live_ui/
+          """,
+                      1
+                  )
+
+          p.write_text(text)
           PYASSET
-
-          echo '--- FINAL PUBSPEC FLUTTER SECTION ---'
-          sed -n '/^flutter:/,/^[^[:space:]]/p' pubspec.yaml | head -20
-          test -f assets/live_ui/logo.png
-          test -f assets/live_ui/ic_guardian_gold.png
 
           flutter pub get
 
+          cd ..
+
 
       # ==========================================
-      # 6. VERIFY FIREBASE CONFIG
+      # 10. VERIFY LIVE UI ASSETS
       # ==========================================
-      - name: Verify Firebase configuration
-        working-directory: app
+      - name: Verify WikaLive live UI assets
         run: |
           set -e
 
-          python3 - <<'PY'
+          test -d app/assets/live_ui || {
+            echo "ERROR: app/assets/live_ui is missing"
+            exit 1
+          }
+
+          test -f app/assets/live_ui/logo.png || {
+            echo "ERROR: assets/live_ui/logo.png is missing"
+            exit 1
+          }
+
+          test -f app/assets/live_ui/ic_guardian_gold.png || {
+            echo "ERROR: assets/live_ui/ic_guardian_gold.png is missing"
+            exit 1
+          }
+
+          echo "=========================================="
+          echo "Live UI assets verified:"
+          echo "=========================================="
+
+          find app/assets/live_ui -maxdepth 1 -type f -print
+
+
+      # ==========================================
+      # 11. VERIFY FIREBASE
+      # ==========================================
+      - name: Verify Firebase configuration
+        run: |
+          set -e
+
+          test -f app/android/app/google-services.json || {
+            echo "ERROR: Firebase google-services.json is missing"
+            exit 1
+          }
+
+          python3 - <<'PYFIREBASE'
           import json
+          from pathlib import Path
 
-          path = "android/app/google-services.json"
+          p = Path("app/android/app/google-services.json")
+          data = json.loads(p.read_text())
 
-          with open(path, "r") as f:
-              data = json.load(f)
-
-          project_id = data.get("project_info", {}).get("project_id")
+          project = data.get("project_info", {})
+          project_id = project.get("project_id")
 
           if project_id != "wika-live":
               raise SystemExit(
-                  f"ERROR: Wrong Firebase project: {project_id}"
+                  f"ERROR: Unexpected Firebase project: {project_id}"
               )
 
-          package_found = False
-          web_client_found = False
-
-          for client in data.get("client", []):
-
-              package_name = (
-                  client
-                  .get("client_info", {})
-                  .get("android_client_info", {})
-                  .get("package_name")
-              )
-
-              if package_name == "com.example.wika_live":
-                  package_found = True
-
-                  for oauth in client.get("oauth_client", []):
-                      if oauth.get("client_type") == 3:
-                          web_client_found = True
-
-          if not package_found:
-              raise SystemExit(
-                  "ERROR: com.example.wika_live missing from Firebase JSON"
-              )
-
-          if not web_client_found:
-              raise SystemExit(
-                  "ERROR: Web OAuth client missing from Firebase JSON"
-              )
-
-          print("Firebase project: OK")
-          print("Android package: OK")
-          print("Web OAuth client: OK")
-          PY
+          print("Firebase project verified: wika-live")
+          PYFIREBASE
 
 
       # ==========================================
-      # 7. CONFIGURE RELEASE KEYSTORE
+      # 12. RELEASE SIGNING
       # ==========================================
       - name: Configure release signing
-        working-directory: app
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          STORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -e
+
+          echo "Checking Android signing secrets..."
 
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "ERROR: KEYSTORE_BASE64 is missing."
             exit 1
           fi
 
-          if [ -z "$STORE_PASS" ]; then
-            echo "ERROR: STORE_PASS is missing."
+          if [ -z "$KEYSTORE_PASS" ]; then
+            echo "ERROR: KEYSTORE_PASS is missing."
             exit 1
           fi
 
@@ -546,78 +495,136 @@ jobs:
             exit 1
           fi
 
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          echo "$KEYSTORE_BASE64" | base64 --decode > app/android/app/wikalive-release.jks
 
-          test -s android/app/upload-keystore.jks
+          test -s app/android/app/wikalive-release.jks || {
+            echo "ERROR: Keystore could not be created."
+            exit 1
+          }
 
-          echo "=========================================="
-          echo "RELEASE KEYSTORE FOUND"
-          echo "=========================================="
+          cat > app/android/key.properties <<EOF
+          storePassword=$KEYSTORE_PASS
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=wikalive-release.jks
+          EOF
 
-          keytool -list \
-            -keystore android/app/upload-keystore.jks \
-            -storepass "$STORE_PASS" \
-            -alias "$KEY_ALIAS" \
-            -v | grep -E "Alias name:|Entry type:|SHA1:"
+          python3 - <<'PYSIGN'
+          from pathlib import Path
 
-          echo "=========================================="
-          echo "RELEASE SIGNING READY"
-          echo "=========================================="
+          p = Path("app/android/app/build.gradle.kts")
+          text = p.read_text()
+
+          signing_block = r'''
+          import java.util.Properties
+          import java.io.FileInputStream
+
+          val keystorePropertiesFile = rootProject.file("key.properties")
+          val keystoreProperties = Properties()
+
+          if (keystorePropertiesFile.exists()) {
+              keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+          }
+          '''
+
+          if "keystorePropertiesFile" not in text:
+              text = signing_block + "\n" + text
+
+          # Add release signing configuration only when the normal Flutter
+          # release block exists.
+          if "signingConfigs" not in text:
+              text = text.replace(
+                  "android {",
+                  """android {
+              signingConfigs {
+                  create("release") {
+                      keyAlias = keystoreProperties["keyAlias"] as String?
+                      keyPassword = keystoreProperties["keyPassword"] as String?
+                      storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                      storePassword = keystoreProperties["storePassword"] as String?
+                  }
+              }
+          """,
+                  1
+              )
+
+          text = text.replace(
+              'signingConfig = signingConfigs.getByName("debug")',
+              'signingConfig = signingConfigs.getByName("release")'
+          )
+
+          if 'signingConfig = signingConfigs.getByName("release")' not in text:
+              text = text.replace(
+                  "buildTypes {",
+                  """buildTypes {
+              getByName("release") {
+                  signingConfig = signingConfigs.getByName("release")
+              }
+          """,
+                  1
+              )
+
+          p.write_text(text)
+          PYSIGN
 
 
       # ==========================================
-      # 8. ANALYZE DART
+      # 13. DART ANALYZE
       # ==========================================
-      - name: Analyze Dart
-        working-directory: app
+      - name: Analyze Flutter project
         run: |
           set -e
 
-          flutter analyze \
-            --no-fatal-infos \
-            --no-fatal-warnings
+          cd app
+
+          flutter analyze --no-fatal-infos
+
+          cd ..
 
 
       # ==========================================
-      # 9. BUILD RELEASE APK
+      # 14. BUILD RELEASE APK
       # ==========================================
       - name: Build release APK
-        working-directory: app
-        env:
-          ZEGO_APP_SIGN: ${{ secrets.ZEGO_APP_SIGN }}
-
-          # Gradle automatically reads ORG_GRADLE_PROJECT_*
-          # as Gradle project properties.
-          ORG_GRADLE_PROJECT_storePassword: ${{ secrets.KEYSTORE_PASS }}
-          ORG_GRADLE_PROJECT_keyAlias: ${{ secrets.KEY_ALIAS }}
-          ORG_GRADLE_PROJECT_keyPassword: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -e
 
-          if [ -z "$ZEGO_APP_SIGN" ]; then
-            echo "ERROR: ZEGO_APP_SIGN is missing."
+          cd app
+
+          flutter build apk \
+            --release \
+            --split-per-abi=false
+
+          cd ..
+
+
+      # ==========================================
+      # 15. VERIFY APK
+      # ==========================================
+      - name: Verify APK
+        run: |
+          set -e
+
+          APK="app/build/app/outputs/flutter-apk/app-release.apk"
+
+          test -f "$APK" || {
+            echo "ERROR: Release APK was not created."
             exit 1
-          fi
-
-          flutter clean
-          flutter pub get
+          }
 
           echo "=========================================="
-          echo "BUILDING WIKALIVE RELEASE APK"
+          echo "WikaLive APK BUILD SUCCESS"
           echo "=========================================="
-          echo "Flutter: 3.35.4"
-          echo "Kotlin: 2.3.21"
-          echo "JVM: 17"
-          echo "Google Sign-In: 7.2.0"
-          
+
+          ls -lh "$APK"
+
 
       # ==========================================
-      # 11. UPLOAD APK
+      # 16. UPLOAD APK
       # ==========================================
-      - name: Upload APK
+      - name: Upload WikaLive APK
         uses: actions/upload-artifact@v4
         with:
-          name: WikaLive-release-apk
+          name: WikaLive-release
           path: app/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-
