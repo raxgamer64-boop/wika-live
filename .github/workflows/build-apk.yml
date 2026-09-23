@@ -63,13 +63,11 @@ jobs:
           test -f app/lib/main.dart
           test -f app/assets/live_ui/logo.png
 
-          echo "=========================================="
           echo "WIKALIVE SOURCE COPIED"
-          echo "=========================================="
 
 
       # ==========================================
-      # 4. PATCH ZEGO API COMPATIBILITY
+      # 4. ZEGO COMPATIBILITY
       # ==========================================
       - name: Patch ZEGO API compatibility
         shell: bash
@@ -80,8 +78,8 @@ jobs:
           from pathlib import Path
           import re
 
-          path = Path("app/lib/main.dart")
-          text = path.read_text(encoding="utf-8")
+          p = Path("app/lib/main.dart")
+          text = p.read_text(encoding="utf-8")
 
           text = text.replace(
               "    controller: ZegoUIKitPrebuiltLiveStreamingController(),\n",
@@ -142,21 +140,19 @@ jobs:
               text
           )
 
-          path.write_text(text, encoding="utf-8")
+          p.write_text(text, encoding="utf-8")
           PY
 
-          if grep -qE \
-            "isCameraOn|isMicrophoneOn" \
-            app/lib/main.dart; then
+          if grep -qE "isCameraOn|isMicrophoneOn" app/lib/main.dart; then
             echo "ERROR: obsolete ZEGO fields remain."
             exit 1
           fi
 
-          echo "ZEGO compatibility check complete."
+          echo "ZEGO compatibility OK."
 
 
       # ==========================================
-      # 5. FIREBASE CONFIGURATION
+      # 5. FIREBASE
       # ==========================================
       - name: Configure Firebase
         shell: bash
@@ -165,12 +161,14 @@ jobs:
 
           test -f google-services.json
 
+          mkdir -p app/android/app
+
           cp google-services.json \
             app/android/app/google-services.json
 
           test -f app/android/app/google-services.json
 
-          echo "Firebase configuration copied."
+          echo "Firebase configuration OK."
 
 
       # ==========================================
@@ -184,11 +182,11 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          path = Path(
+          p = Path(
               "app/android/app/src/main/AndroidManifest.xml"
           )
 
-          text = path.read_text(encoding="utf-8")
+          text = p.read_text(encoding="utf-8")
 
           permissions = [
               '    <uses-permission android:name="android.permission.CAMERA" />',
@@ -204,14 +202,14 @@ jobs:
                       1
                   )
 
-          path.write_text(text, encoding="utf-8")
+          p.write_text(text, encoding="utf-8")
           PY
 
-          echo "Android permissions configured."
+          echo "Android permissions OK."
 
 
       # ==========================================
-      # 7. FIREBASE + KOTLIN + GRADLE
+      # 7. ANDROID GRADLE / KOTLIN
       # ==========================================
       - name: Configure Android Gradle
         working-directory: app
@@ -272,6 +270,7 @@ jobs:
                   1
               )
 
+          # Remove obsolete Kotlin syntax.
           text = re.sub(
               r'\n[ \t]*kotlinOptions\s*\{.*?\n[ \t]*\}',
               '',
@@ -285,15 +284,22 @@ jobs:
               text
           )
 
+          # Java 17.
           text = text.replace(
               "JavaVersion.VERSION_11",
               "JavaVersion.VERSION_17"
           )
 
           if "sourceCompatibility = JavaVersion.VERSION_17" not in text:
+
               marker = "android {"
 
-              compile_options = """
+              if marker not in text:
+                  raise SystemExit(
+                      "ERROR: android block missing."
+                  )
+
+              block = """
               compileOptions {
                   sourceCompatibility = JavaVersion.VERSION_17
                   targetCompatibility = JavaVersion.VERSION_17
@@ -301,17 +307,18 @@ jobs:
 
           """
 
-              position = text.find(marker) + len(marker)
+              pos = text.find(marker) + len(marker)
 
               text = (
-                  text[:position]
+                  text[:pos]
                   + "\n"
-                  + compile_options
-                  + text[position:]
+                  + block
+                  + text[pos:]
               )
 
+
           # ------------------------------------------
-          # RELEASE SIGNING
+          # Release signing configuration
           # ------------------------------------------
           if 'create("wikaliveRelease")' not in text:
 
@@ -336,6 +343,7 @@ jobs:
                   1
               )
 
+
           if 'signingConfig = signingConfigs.getByName("wikaliveRelease")' not in text:
 
               text = text.replace(
@@ -346,8 +354,9 @@ jobs:
                   1
               )
 
+
           # ------------------------------------------
-          # KOTLIN JVM 17
+          # Kotlin compiler JVM 17
           # ------------------------------------------
           if "jvmTarget.set(" not in text:
 
@@ -368,11 +377,11 @@ jobs:
           # ------------------------------------------
           # gradle.properties
           # ------------------------------------------
-          properties = Path("android/gradle.properties")
+          gp = Path("android/gradle.properties")
 
           existing = (
-              properties.read_text(encoding="utf-8")
-              if properties.exists()
+              gp.read_text(encoding="utf-8")
+              if gp.exists()
               else ""
           )
 
@@ -430,17 +439,18 @@ jobs:
               "true"
           )
 
-          properties.write_text(existing, encoding="utf-8")
+          gp.write_text(existing, encoding="utf-8")
 
-          print("Android Gradle configuration complete.")
-          print("Kotlin: 2.3.21")
-          print("Java/JVM: 17")
-          print("AndroidX: enabled")
+          print("Kotlin 2.3.21")
+          print("Java/JVM 17")
+          print("AndroidX enabled")
+          print("Google Services enabled")
+          print("Signing configured")
           PY
 
 
       # ==========================================
-      # 8. ADD PACKAGES
+      # 8. PACKAGES
       # ==========================================
       - name: Add packages
         working-directory: app
@@ -461,7 +471,7 @@ jobs:
 
 
       # ==========================================
-      # 9. CONFIGURE LIVE UI ASSETS
+      # 9. LIVE UI ASSETS
       # ==========================================
       - name: Configure live UI assets
         working-directory: app
@@ -472,8 +482,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          path = Path("pubspec.yaml")
-          lines = path.read_text(encoding="utf-8").splitlines()
+          p = Path("pubspec.yaml")
+          lines = p.read_text(encoding="utf-8").splitlines()
 
           flutter_index = None
 
@@ -491,7 +501,6 @@ jobs:
                   "ERROR: flutter section missing."
               )
 
-          # Remove existing assets block.
           result = []
           i = 0
 
@@ -504,6 +513,7 @@ jobs:
                   i += 1
 
                   while i < len(lines):
+
                       line = lines[i]
 
                       if (
@@ -538,7 +548,7 @@ jobs:
               "    - assets/live_ui/",
           ]
 
-          path.write_text(
+          p.write_text(
               "\n".join(lines) + "\n",
               encoding="utf-8"
           )
@@ -548,7 +558,7 @@ jobs:
 
           flutter pub get
 
-          echo "Live UI assets configured."
+          echo "Live UI assets OK."
 
 
       # ==========================================
@@ -563,9 +573,11 @@ jobs:
           python3 - <<'PY'
           import json
 
-          path = "android/app/google-services.json"
-
-          with open(path, "r", encoding="utf-8") as f:
+          with open(
+              "android/app/google-services.json",
+              "r",
+              encoding="utf-8"
+          ) as f:
               data = json.load(f)
 
           project_id = (
@@ -604,7 +616,7 @@ jobs:
 
 
       # ==========================================
-      # 11. CREATE AND VERIFY KEYSTORE
+      # 11. RELEASE KEYSTORE
       # ==========================================
       - name: Configure release signing
         working-directory: app
@@ -617,9 +629,7 @@ jobs:
         run: |
           set -e
 
-          echo "=========================================="
-          echo "CHECKING SIGNING SECRETS"
-          echo "=========================================="
+          echo "Checking signing secrets..."
 
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "ERROR: KEYSTORE_BASE64 is missing."
@@ -643,25 +653,15 @@ jobs:
 
           echo "Signing secrets: OK"
 
-          echo "=========================================="
-          echo "CREATING KEYSTORE DIRECTORY"
-          echo "=========================================="
-
           mkdir -p android/app
 
           KEYSTORE_PATH="android/app/upload-keystore.jks"
 
           rm -f "$KEYSTORE_PATH"
 
-          echo "Decoding keystore..."
-
           printf '%s' "$KEYSTORE_BASE64" \
             | base64 --decode \
             > "$KEYSTORE_PATH"
-
-          echo "=========================================="
-          echo "VERIFYING KEYSTORE FILE"
-          echo "=========================================="
 
           if [ ! -f "$KEYSTORE_PATH" ]; then
             echo "ERROR: Keystore file was not created."
@@ -673,12 +673,10 @@ jobs:
             exit 1
           fi
 
-          echo "Keystore created successfully:"
+          echo "Keystore created:"
           ls -lh "$KEYSTORE_PATH"
 
-          echo "=========================================="
-          echo "VERIFYING KEYSTORE CONTENT"
-          echo "=========================================="
+          echo "Verifying keystore..."
 
           keytool -list \
             -keystore "$KEYSTORE_PATH" \
@@ -687,9 +685,7 @@ jobs:
             -v | grep -E \
             "Alias name:|Entry type:|SHA1:"
 
-          echo "=========================================="
           echo "RELEASE SIGNING READY"
-          echo "=========================================="
 
 
       # ==========================================
@@ -708,4 +704,34 @@ jobs:
             exit 1
           fi
 
-         
+          if grep -q \
+            "import org.jetbrains.kotlin.gradle.dsl.JvmTarget" \
+            "$FILE"; then
+            echo "ERROR: invalid JvmTarget import found."
+            exit 1
+          fi
+
+          grep -q "compilerOptions" "$FILE"
+          grep -q "JvmTarget.JVM_17" "$FILE"
+          grep -q "VERSION_17" "$FILE"
+
+          echo "Kotlin configuration: OK"
+          echo "JVM 17: OK"
+
+
+      # ==========================================
+      # 13. ANALYZE DART
+      # ==========================================
+      - name: Analyze Dart
+        working-directory: app
+        shell: bash
+        run: |
+          set +e
+
+          flutter analyze \
+            --no-fatal-infos \
+            --no-fatal-warnings
+
+          CODE=$?
+
+          echo "Flutter analyze exit
