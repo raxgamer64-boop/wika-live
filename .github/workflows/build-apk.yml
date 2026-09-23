@@ -11,16 +11,16 @@ jobs:
 
     steps:
 
-      # ==========================================
+      # =========================================================
       # 1. CHECKOUT
-      # ==========================================
+      # =========================================================
       - name: Checkout
         uses: actions/checkout@v4
 
 
-      # ==========================================
-      # 2. SETUP FLUTTER
-      # ==========================================
+      # =========================================================
+      # 2. FLUTTER
+      # =========================================================
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -29,9 +29,9 @@ jobs:
           cache: true
 
 
-      # ==========================================
+      # =========================================================
       # 3. CREATE FLUTTER PROJECT
-      # ==========================================
+      # =========================================================
       - name: Create Flutter project
         shell: bash
         run: |
@@ -45,12 +45,12 @@ jobs:
             app
 
           test -f main.dart || {
-            echo "ERROR: Root main.dart is missing."
+            echo "ERROR: main.dart is missing."
             exit 1
           }
 
           test -d assets/live_ui || {
-            echo "ERROR: assets/live_ui folder is missing."
+            echo "ERROR: assets/live_ui is missing."
             exit 1
           }
 
@@ -60,25 +60,47 @@ jobs:
           cp main.dart app/lib/main.dart
           cp -R assets/live_ui app/assets/live_ui
 
-          echo "main.dart copied successfully."
-          echo "live_ui assets copied successfully."
+          echo "=========================================="
+          echo "WikaLive source copied"
+          echo "=========================================="
+
+          echo "main.dart:"
+          ls -lh app/lib/main.dart
+
+          echo ""
+          echo "Live UI assets:"
+          find app/assets/live_ui \
+            -maxdepth 1 \
+            -type f \
+            -printf '%f\n' \
+            | sort
 
 
-      # ==========================================
-      # 4. KOTLIN / ANDROID GRADLE COMPATIBILITY
-      # ==========================================
-      - name: Configure Kotlin 2.3.0
+      # =========================================================
+      # 4. KOTLIN + GRADLE + JAVA COMPATIBILITY
+      # =========================================================
+      - name: Configure Android Kotlin and Java
         shell: bash
         run: |
           set -e
 
           SETTINGS="app/android/settings.gradle.kts"
+          APP_GRADLE="app/android/app/build.gradle.kts"
+          GRADLE_PROPERTIES="app/android/gradle.properties"
 
           test -f "$SETTINGS" || {
-            echo "ERROR: settings.gradle.kts not found."
+            echo "ERROR: settings.gradle.kts missing."
             exit 1
           }
 
+          test -f "$APP_GRADLE" || {
+            echo "ERROR: app/build.gradle.kts missing."
+            exit 1
+          }
+
+          # -----------------------------------------------------
+          # Kotlin 2.3.0
+          # -----------------------------------------------------
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -86,42 +108,35 @@ jobs:
           path = Path("app/android/settings.gradle.kts")
           text = path.read_text(encoding="utf-8")
 
-          # Replace Kotlin Android plugin version if present.
+          # Replace existing Kotlin Android plugin version.
           text = re.sub(
               r'id\("org\.jetbrains\.kotlin\.android"\)\s+version\s+"[^"]+"',
               'id("org.jetbrains.kotlin.android") version "2.3.0"',
               text
           )
 
-          # If Flutter generated the plugin line differently,
-          # ensure the Kotlin Android plugin is present.
+          # Add Kotlin plugin if it doesn't exist.
           if 'id("org.jetbrains.kotlin.android")' not in text:
               marker = "plugins {"
 
-              if marker in text:
-                  text = text.replace(
-                      marker,
-                      marker + '\n    id("org.jetbrains.kotlin.android") version "2.3.0"',
-                      1
+              if marker not in text:
+                  raise SystemExit(
+                      "ERROR: plugins block missing in settings.gradle.kts"
                   )
+
+              text = text.replace(
+                  marker,
+                  marker +
+                  '\n    id("org.jetbrains.kotlin.android") version "2.3.0"',
+                  1
+              )
 
           path.write_text(text, encoding="utf-8")
           PY
 
-          echo "Kotlin configuration:"
-          grep -n "kotlin" "$SETTINGS" || true
-
-
-      # ==========================================
-      # 5. CONFIGURE ANDROID GRADLE PLUGIN
-      # ==========================================
-      - name: Configure Android Gradle Plugin
-        shell: bash
-        run: |
-          set -e
-
-          SETTINGS="app/android/settings.gradle.kts"
-
+          # -----------------------------------------------------
+          # Android Gradle Plugin
+          # -----------------------------------------------------
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -129,7 +144,6 @@ jobs:
           path = Path("app/android/settings.gradle.kts")
           text = path.read_text(encoding="utf-8")
 
-          # Keep AGP in the 8.x line compatible with Kotlin 2.3.0.
           text = re.sub(
               r'id\("com\.android\.application"\)\s+version\s+"[^"]+"',
               'id("com.android.application") version "8.7.3"',
@@ -139,45 +153,148 @@ jobs:
           path.write_text(text, encoding="utf-8")
           PY
 
-          echo "Android Gradle Plugin configuration:"
-          grep -n "com.android.application" "$SETTINGS" || true
-
-
-      # ==========================================
-      # 6. PATCH ZEGO CONTROLLER API
-      # ==========================================
-      - name: Patch ZEGO controller API
-        shell: bash
-        run: |
-          set -e
-
-          FILE="app/lib/main.dart"
-
+          # -----------------------------------------------------
+          # Remove ALL old kotlinOptions blocks.
+          # Add Kotlin 2.3 compilerOptions DSL.
+          # -----------------------------------------------------
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
-          path = Path("app/lib/main.dart")
+          path = Path("app/android/app/build.gradle.kts")
           text = path.read_text(encoding="utf-8")
 
-          # Keep existing ZEGO calls intact.
-          # This step intentionally does not alter ZEGO logic.
+          # Remove every old kotlinOptions block.
+          text = re.sub(
+              r'\n[ \t]*kotlinOptions\s*\{.*?\n[ \t]*\}',
+              '',
+              text,
+              flags=re.S
+          )
+
+          # Remove any previously inserted compilerOptions/kotlin block
+          # from earlier workflow attempts so we never stack blocks.
+          text = re.sub(
+              r'\n[ \t]*kotlin\s*\{\s*compilerOptions\s*\{.*?\n[ \t]*\}\s*\}',
+              '',
+              text,
+              flags=re.S
+          )
+
+          # Remove previously added Java compile blocks if present.
+          text = re.sub(
+              r'\n[ \t]*compileOptions\s*\{.*?\n[ \t]*\}',
+              '',
+              text,
+              flags=re.S
+          )
+
+          # Add the required import.
+          if "import org.jetbrains.kotlin.gradle.dsl.JvmTarget" not in text:
+              text = (
+                  'import org.jetbrains.kotlin.gradle.dsl.JvmTarget\n'
+                  + text
+              )
+
+          # Java 17.
+          compile_block = r'''
+          android {
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+
+          '''
+
+          # We will insert compileOptions inside the existing android block
+          # instead of creating a second android block.
+          android_marker = "android {"
+
+          if android_marker not in text:
+              raise SystemExit(
+                  "ERROR: android block missing in app/build.gradle.kts"
+              )
+
+          android_pos = text.find(android_marker)
+          android_insert = android_pos + len(android_marker)
+
+          text = (
+              text[:android_insert]
+              + r'''
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+
+              '''
+              + text[android_insert:]
+          )
+
+          # Kotlin 2.3 compilerOptions.
+          kotlin_block = r'''
+          kotlin {
+              compilerOptions {
+                  jvmTarget.set(JvmTarget.JVM_17)
+              }
+          }
+
+          '''
+
+          text = kotlin_block + text
 
           path.write_text(text, encoding="utf-8")
-
-          print("ZEGO source preserved.")
           PY
 
+          # -----------------------------------------------------
+          # Gradle properties
+          # -----------------------------------------------------
+          touch "$GRADLE_PROPERTIES"
 
-      # ==========================================
-      # 7. FIREBASE
-      # ==========================================
+          grep -q '^android.useAndroidX=true' \
+            "$GRADLE_PROPERTIES" || \
+            echo 'android.useAndroidX=true' >> "$GRADLE_PROPERTIES"
+
+          grep -q '^android.enableJetifier=true' \
+            "$GRADLE_PROPERTIES" || \
+            echo 'android.enableJetifier=true' >> "$GRADLE_PROPERTIES"
+
+          echo ""
+          echo "=========================================="
+          echo "KOTLIN CONFIGURATION"
+          echo "=========================================="
+
+          grep -n "kotlin" "$SETTINGS" || true
+
+          echo ""
+          echo "=========================================="
+          echo "JVM CONFIGURATION"
+          echo "=========================================="
+
+          grep -n \
+            -E "compilerOptions|jvmTarget|sourceCompatibility|targetCompatibility|kotlinOptions" \
+            "$APP_GRADLE" || true
+
+          # IMPORTANT: old kotlinOptions must NOT remain.
+          if grep -q "kotlinOptions" "$APP_GRADLE"; then
+            echo "ERROR: Old kotlinOptions still exists."
+            exit 1
+          fi
+
+          echo ""
+          echo "Kotlin/Java configuration verified."
+
+
+      # =========================================================
+      # 5. FIREBASE
+      # =========================================================
       - name: Configure Firebase
         shell: bash
         run: |
           set -e
 
           test -f google-services.json || {
-            echo "ERROR: google-services.json is missing."
+            echo "ERROR: google-services.json missing."
             exit 1
           }
 
@@ -186,12 +303,76 @@ jobs:
           cp google-services.json \
             app/android/app/google-services.json
 
-          echo "Firebase google-services.json copied."
+          echo "Firebase configuration copied."
 
 
-      # ==========================================
-      # 8. ANDROID PERMISSIONS
-      # ==========================================
+      # =========================================================
+      # 6. GOOGLE SERVICES GRADLE PLUGIN
+      # =========================================================
+      - name: Configure Google Services
+        shell: bash
+        run: |
+          set -e
+
+          SETTINGS="app/android/settings.gradle.kts"
+          APP_GRADLE="app/android/app/build.gradle.kts"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # settings.gradle.kts
+          path = Path("app/android/settings.gradle.kts")
+          text = path.read_text(encoding="utf-8")
+
+          plugin_line = (
+              'id("com.google.gms.google-services") '
+              'version "4.4.3" apply false'
+          )
+
+          if 'id("com.google.gms.google-services")' not in text:
+              marker = "plugins {"
+
+              if marker not in text:
+                  raise SystemExit(
+                      "ERROR: plugins block missing."
+                  )
+
+              text = text.replace(
+                  marker,
+                  marker + "\n    " + plugin_line,
+                  1
+              )
+
+          path.write_text(text, encoding="utf-8")
+
+          # app/build.gradle.kts
+          path = Path("app/android/app/build.gradle.kts")
+          text = path.read_text(encoding="utf-8")
+
+          if 'id("com.google.gms.google-services")' not in text:
+              marker = "plugins {"
+
+              if marker not in text:
+                  raise SystemExit(
+                      "ERROR: app plugins block missing."
+                  )
+
+              text = text.replace(
+                  marker,
+                  marker +
+                  '\n    id("com.google.gms.google-services")',
+                  1
+              )
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+          echo "Google Services plugin configured."
+
+
+      # =========================================================
+      # 7. ANDROID PERMISSIONS
+      # =========================================================
       - name: Configure Android permissions
         shell: bash
         run: |
@@ -199,10 +380,18 @@ jobs:
 
           MANIFEST="app/android/app/src/main/AndroidManifest.xml"
 
+          test -f "$MANIFEST" || {
+            echo "ERROR: AndroidManifest.xml missing."
+            exit 1
+          }
+
           python3 - <<'PY'
           from pathlib import Path
 
-          path = Path("app/android/app/src/main/AndroidManifest.xml")
+          path = Path(
+              "app/android/app/src/main/AndroidManifest.xml"
+          )
+
           text = path.read_text(encoding="utf-8")
 
           permissions = [
@@ -232,85 +421,9 @@ jobs:
           echo "Android permissions configured."
 
 
-      # ==========================================
-      # 9. GOOGLE SERVICES PLUGIN
-      # ==========================================
-      - name: Configure Google Services
-        shell: bash
-        run: |
-          set -e
-
-          SETTINGS="app/android/settings.gradle.kts"
-          APP_GRADLE="app/android/app/build.gradle.kts"
-
-          python3 - <<'PY'
-          from pathlib import Path
-
-          # settings.gradle.kts
-          settings = Path("app/android/settings.gradle.kts")
-          text = settings.read_text(encoding="utf-8")
-
-          google_plugin = (
-              'id("com.google.gms.google-services") '
-              'version "4.4.2" apply false'
-          )
-
-          if 'id("com.google.gms.google-services")' not in text:
-              marker = "plugins {"
-
-              if marker in text:
-                  text = text.replace(
-                      marker,
-                      marker + "\n    " + google_plugin,
-                      1
-                  )
-
-          settings.write_text(text, encoding="utf-8")
-
-          # app/build.gradle.kts
-          app = Path("app/android/app/build.gradle.kts")
-          text = app.read_text(encoding="utf-8")
-
-          if 'id("com.google.gms.google-services")' not in text:
-              marker = "plugins {"
-
-              if marker in text:
-                  text = text.replace(
-                      marker,
-                      marker + '\n    id("com.google.gms.google-services")',
-                      1
-                  )
-
-          app.write_text(text, encoding="utf-8")
-          PY
-
-          echo "Google Services configured."
-
-
-      # ==========================================
-      # 10. ANDROIDX
-      # ==========================================
-      - name: Configure AndroidX
-        shell: bash
-        run: |
-          set -e
-
-          PROPERTIES="app/android/gradle.properties"
-
-          touch "$PROPERTIES"
-
-          grep -q '^android.useAndroidX=true' "$PROPERTIES" || \
-            echo 'android.useAndroidX=true' >> "$PROPERTIES"
-
-          grep -q '^android.enableJetifier=true' "$PROPERTIES" || \
-            echo 'android.enableJetifier=true' >> "$PROPERTIES"
-
-          echo "AndroidX configured."
-
-
-      # ==========================================
-      # 11. FLUTTER DEPENDENCIES
-      # ==========================================
+      # =========================================================
+      # 8. FLUTTER DEPENDENCIES
+      # =========================================================
       - name: Configure Flutter dependencies
         working-directory: app
         shell: bash
@@ -329,9 +442,9 @@ jobs:
           flutter pub get
 
 
-      # ==========================================
-      # 12. LIVE UI ASSETS
-      # ==========================================
+      # =========================================================
+      # 9. LIVE UI ASSETS
+      # =========================================================
       - name: Configure live UI assets
         working-directory: app
         shell: bash
@@ -346,20 +459,21 @@ jobs:
           text = path.read_text(encoding="utf-8")
 
           if "    - assets/live_ui/" not in text:
+
               lines = text.splitlines(True)
 
-              indexes = []
+              flutter_indexes = []
 
               for i, line in enumerate(lines):
                   if re.match(r"^flutter:\s*$", line):
-                      indexes.append(i)
+                      flutter_indexes.append(i)
 
-              if not indexes:
+              if not flutter_indexes:
                   raise SystemExit(
-                      "ERROR: Root flutter: section not found."
+                      "ERROR: root flutter section missing."
                   )
 
-              idx = indexes[-1]
+              idx = flutter_indexes[-1]
               insert_at = idx + 1
 
               while insert_at < len(lines):
@@ -381,43 +495,47 @@ jobs:
                   encoding="utf-8"
               )
 
-          print("live_ui asset configuration complete.")
+          print("live_ui assets configured.")
           PY
 
           flutter pub get
 
 
-      # ==========================================
-      # 13. VERIFY ASSETS
-      # ==========================================
+      # =========================================================
+      # 10. VERIFY ASSETS
+      # =========================================================
       - name: Verify live UI assets
         shell: bash
         run: |
           set -e
 
-          test -f app/assets/live_ui/logo.png || {
-            echo "ERROR: logo.png missing."
-            exit 1
-          }
+          REQUIRED_ASSETS=(
+            "logo.png"
+            "ic_guardian_gold.png"
+            "ic_guardian_diamond.png"
+            "iv_gift_btn.png"
+            "iv_live_rule_logo.png"
+            "iv_live_team_pk_blue_seat.png"
+            "iv_live_team_pk_red_seat.png"
+            "iv_lucky_button.png"
+            "iv_quick_gift.png"
+            "bg_treasure_box.png"
+          )
 
-          test -f app/assets/live_ui/ic_guardian_gold.png || {
-            echo "ERROR: ic_guardian_gold.png missing."
-            exit 1
-          }
+          for FILE in "${REQUIRED_ASSETS[@]}"; do
+            test -f "app/assets/live_ui/$FILE" || {
+              echo "ERROR: Missing asset: $FILE"
+              exit 1
+            }
+          done
 
-          echo "Live UI assets verified."
-
-          find app/assets/live_ui \
-            -maxdepth 1 \
-            -type f \
-            -printf '%f\n' \
-            | sort
+          echo "All live UI assets verified."
 
 
-      # ==========================================
-      # 14. VERIFY FIREBASE
-      # ==========================================
-      - name: Verify Firebase configuration
+      # =========================================================
+      # 11. VERIFY FIREBASE PROJECT
+      # =========================================================
+      - name: Verify Firebase project
         shell: bash
         run: |
           set -e
@@ -425,11 +543,9 @@ jobs:
           python3 - <<'PY'
           import json
 
-          with open(
-              "app/android/app/google-services.json",
-              "r",
-              encoding="utf-8"
-          ) as f:
+          path = "app/android/app/google-services.json"
+
+          with open(path, "r", encoding="utf-8") as f:
               data = json.load(f)
 
           project_id = (
@@ -442,14 +558,33 @@ jobs:
 
           if project_id != "wika-live":
               raise SystemExit(
-                  "ERROR: Firebase project is not wika-live."
+                  "ERROR: Firebase project must be wika-live."
               )
           PY
 
 
-      # ==========================================
-      # 15. RELEASE SIGNING
-      # ==========================================
+      # =========================================================
+      # 12. VERIFY PACKAGE
+      # =========================================================
+      - name: Verify Android package
+        shell: bash
+        run: |
+          set -e
+
+          MANIFEST="app/android/app/src/main/AndroidManifest.xml"
+          GRADLE="app/android/app/build.gradle.kts"
+
+          echo "Checking generated Android configuration..."
+
+          grep -n "namespace" "$GRADLE" || true
+          grep -n "applicationId" "$GRADLE" || true
+
+          echo "Android configuration checked."
+
+
+      # =========================================================
+      # 13. RELEASE SIGNING
+      # =========================================================
       - name: Configure release signing
         shell: bash
         env:
@@ -503,12 +638,12 @@ jobs:
           storeFile=upload-keystore.jks
           EOF
 
-          echo "Signing configuration created."
+          echo "Signing configuration created successfully."
 
 
-      # ==========================================
-      # 16. GRADLE RELEASE SIGNING
-      # ==========================================
+      # =========================================================
+      # 14. RELEASE SIGNING CONFIG
+      # =========================================================
       - name: Configure Gradle release signing
         shell: bash
         run: |
@@ -518,14 +653,32 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
-          path = Path("app/android/app/build.gradle.kts")
+          path = Path(
+              "app/android/app/build.gradle.kts"
+          )
+
           text = path.read_text(encoding="utf-8")
 
-          imports = r'''
+          # Remove any previous signingConfigs block generated
+          # by an earlier version of this workflow.
+          text = re.sub(
+              r'\n[ \t]*signingConfigs\s*\{.*?\n[ \t]*\}',
+              '',
+              text,
+              flags=re.S
+          )
+
+          signing_import = """
           import java.util.Properties
           import java.io.FileInputStream
+          """
 
+          if "java.util.Properties" not in text:
+              text = signing_import + "\n" + text
+
+          signing_variables = r'''
           val keyPropertiesFile =
               rootProject.file("key.properties")
 
@@ -540,12 +693,9 @@ jobs:
           '''
 
           if "val keyPropertiesFile" not in text:
-              text = imports + text
+              text = signing_variables + text
 
-          if "signingConfigs {" not in text:
-              marker = "android {"
-
-              signing = r'''
+          signing_block = r'''
               signingConfigs {
                   create("release") {
                       if (keyPropertiesFile.exists()) {
@@ -565,42 +715,104 @@ jobs:
                   }
               }
 
-              '''
+          '''
 
-              if marker in text:
-                  text = text.replace(
-                      marker,
-                      marker + "\n" + signing,
-                      1
-                  )
+          android_marker = "android {"
 
-          # Ensure release build uses release signing.
-          if 'signingConfig = signingConfigs.getByName("release")' \
-                  not in text:
+          if android_marker not in text:
+              raise SystemExit(
+                  "ERROR: android block missing."
+              )
 
-              release_marker = "release {"
-              pos = text.find(release_marker)
+          pos = text.find(android_marker)
 
-              if pos != -1:
-                  insert_pos = pos + len(release_marker)
+          insert_pos = pos + len(android_marker)
 
+          text = (
+              text[:insert_pos]
+              + "\n"
+              + signing_block
+              + text[insert_pos:]
+          )
+
+          # Replace debug signing on release if present.
+          text = text.replace(
+              'signingConfig = signingConfigs.getByName("debug")',
+              'signingConfig = signingConfigs.getByName("release")'
+          )
+
+          # Add release signing if release block exists and doesn't
+          # already contain a signingConfig.
+          release_match = re.search(
+              r'release\s*\{',
+              text
+          )
+
+          if release_match:
+              release_start = release_match.end()
+
+              remaining = text[release_start:]
+
+              if "signingConfig" not in remaining:
                   text = (
-                      text[:insert_pos]
+                      text[:release_start]
                       + '\n'
-                      + '            signingConfig = '
+                      + '        signingConfig = '
                       + 'signingConfigs.getByName("release")'
-                      + text[insert_pos:]
+                      + text[release_start:]
                   )
 
-          path.write_text(text, encoding="utf-8")
+          path.write_text(
+              text,
+              encoding="utf-8"
+          )
           PY
 
           echo "Release signing configured."
 
 
-      # ==========================================
-      # 17. FLUTTER ANALYZE
-      # ==========================================
+      # =========================================================
+      # 15. FINAL KOTLIN SANITY CHECK
+      # =========================================================
+      - name: Verify Kotlin compiler configuration
+        shell: bash
+        run: |
+          set -e
+
+          FILE="app/android/app/build.gradle.kts"
+
+          echo "=========================================="
+          echo "KOTLIN SANITY CHECK"
+          echo "=========================================="
+
+          if grep -q "kotlinOptions" "$FILE"; then
+            echo "ERROR: kotlinOptions is still present."
+            grep -n "kotlinOptions" "$FILE"
+            exit 1
+          fi
+
+          grep -n "compilerOptions" "$FILE" || {
+            echo "ERROR: compilerOptions not found."
+            exit 1
+          }
+
+          grep -n "JvmTarget.JVM_17" "$FILE" || {
+            echo "ERROR: JVM 17 target not found."
+            exit 1
+          }
+
+          grep -n "VERSION_17" "$FILE" || {
+            echo "ERROR: Java 17 configuration not found."
+            exit 1
+          }
+
+          echo ""
+          echo "Kotlin compiler configuration is valid."
+
+
+      # =========================================================
+      # 16. FLUTTER ANALYZE
+      # =========================================================
       - name: Flutter analyze
         working-directory: app
         shell: bash
@@ -615,54 +827,82 @@ jobs:
 
           echo ""
           echo "Flutter analyze exit code: $ANALYZE_EXIT"
-          echo "Analyzer info/warnings do not stop the release build."
+          echo "Info/warning findings will not stop the APK build."
 
           exit 0
 
 
-      # ==========================================
-      # 18. BUILD RELEASE APK
-      # ==========================================
+      # =========================================================
+      # 17. BUILD RELEASE APK
+      # =========================================================
       - name: Build release APK
         working-directory: app
         shell: bash
+        env:
+          ZEGO_APP_SIGN: ${{ secrets.ZEGO_APP_SIGN }}
         run: |
           set -e
 
-          flutter build apk --release
+          if [ -z "$ZEGO_APP_SIGN" ]; then
+            echo "ERROR: ZEGO_APP_SIGN secret is missing."
+            exit 1
+          fi
+
+          flutter build apk \
+            --release \
+            --dart-define=ZEGO_APP_SIGN="$ZEGO_APP_SIGN"
 
           test -f \
             build/app/outputs/flutter-apk/app-release.apk || {
-              echo "ERROR: Release APK was not generated."
+              echo "ERROR: APK was not generated."
               exit 1
           }
 
-          echo "Release APK generated successfully."
+          echo "=========================================="
+          echo "RELEASE APK CREATED"
+          echo "=========================================="
+
+          ls -lh \
+            build/app/outputs/flutter-apk/app-release.apk
 
 
-      # ==========================================
-      # 19. BUILD RELEASE AAB
-      # ==========================================
+      # =========================================================
+      # 18. BUILD RELEASE AAB
+      # =========================================================
       - name: Build release AAB
         working-directory: app
         shell: bash
+        env:
+          ZEGO_APP_SIGN: ${{ secrets.ZEGO_APP_SIGN }}
         run: |
           set -e
 
-          flutter build appbundle --release
+          if [ -z "$ZEGO_APP_SIGN" ]; then
+            echo "ERROR: ZEGO_APP_SIGN secret is missing."
+            exit 1
+          fi
+
+          flutter build appbundle \
+            --release \
+            --dart-define=ZEGO_APP_SIGN="$ZEGO_APP_SIGN"
 
           test -f \
             build/app/outputs/bundle/release/app-release.aab || {
-              echo "ERROR: Release AAB was not generated."
+              echo "ERROR: AAB was not generated."
               exit 1
           }
 
-          echo "Release AAB generated successfully."
+          echo "=========================================="
+          echo "RELEASE AAB CREATED"
+          echo "=========================================="
+
+          ls -lh \
+            build/app/outputs/bundle/release/app-release.aab
 
 
-      # ==========================================
-      # 20. VERIFY APK
-      # ==========================================
+      # =========================================================
+      # 19. VERIFY APK
+      # =========================================================
       - name: Verify APK
         shell: bash
         run: |
@@ -672,16 +912,17 @@ jobs:
 
           test -f "$APK"
 
-          echo "APK:"
+          echo "APK size:"
           ls -lh "$APK"
 
+          echo ""
           echo "APK SHA256:"
           sha256sum "$APK"
 
 
-      # ==========================================
-      # 21. VERIFY AAB
-      # ==========================================
+      # =========================================================
+      # 20. VERIFY AAB
+      # =========================================================
       - name: Verify AAB
         shell: bash
         run: |
@@ -691,16 +932,17 @@ jobs:
 
           test -f "$AAB"
 
-          echo "AAB:"
+          echo "AAB size:"
           ls -lh "$AAB"
 
+          echo ""
           echo "AAB SHA256:"
           sha256sum "$AAB"
 
 
-      # ==========================================
-      # 22. UPLOAD APK
-      # ==========================================
+      # =========================================================
+      # 21. UPLOAD APK
+      # =========================================================
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -709,9 +951,9 @@ jobs:
           if-no-files-found: error
 
 
-      # ==========================================
-      # 23. UPLOAD AAB
-      # ==========================================
+      # =========================================================
+      # 22. UPLOAD AAB
+      # =========================================================
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
@@ -720,15 +962,21 @@ jobs:
           if-no-files-found: error
 
 
-      # ==========================================
-      # 24. FINAL STATUS
-      # ==========================================
+      # =========================================================
+      # 23. FINAL
+      # =========================================================
       - name: Build completed
         shell: bash
         run: |
+          echo ""
           echo "=========================================="
-          echo "WikaLive BUILD COMPLETED SUCCESSFULLY"
+          echo "       WIKALIVE BUILD SUCCESS"
           echo "=========================================="
           echo ""
           echo "APK:"
-          echo "app/build/app/outputs/flutter-apk/app-r
+          echo "WikaLive-release-apk"
+          echo ""
+          echo "AAB:"
+          echo "WikaLive-release-aab"
+          echo ""
+          echo "=========================================="
