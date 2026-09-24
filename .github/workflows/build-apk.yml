@@ -47,10 +47,8 @@ jobs:
           # Use the repository's real root main.dart. Patch the ZEGO API mismatches
           # in-place so the build never depends on a second filename being uploaded.
           test -f main.dart || { echo 'ERROR: root main.dart is missing'; exit 1; }
-          test -f wikalive_logo.png || { echo 'ERROR: wikalive_logo.png is missing'; exit 1; }
           cp main.dart app/lib/main.dart
           mkdir -p app/assets
-          cp wikalive_logo.png app/assets/wikalive_logo.png
 
           python3 - <<'PYFIX'
           from pathlib import Path
@@ -438,7 +436,6 @@ jobs:
           )
           lines[flutter_idx + 1:flutter_idx + 1] = [
               '  assets:',
-              '    - assets/wikalive_logo.png'
           ]
 
           p.write_text('\n'.join(lines) + '\n')
@@ -446,8 +443,6 @@ jobs:
 
           echo '--- FINAL PUBSPEC FLUTTER SECTION ---'
           sed -n '/^flutter:/,/^[^[:space:]]/p' pubspec.yaml | head -20
-          test -f assets/wikalive_logo.png
-          test -f assets/wikalive_logo.png
 
           flutter pub get
 
@@ -606,4 +601,12 @@ jobs:
           echo 'Kotlin: 2.3.21'
           echo 'JVM: 17'
           echo 'Google Sign-In: 7.2.0'
-          
+
+          flutter build apk --release
+
+          test -s build/app/outputs/flutter-apk/app-release.apk
+          ls -lh build/app/outputs/flutter-apk/app-release.apk
+
+      # ==========================================
+      # 11. UPLOAD APK
+      # ======================================          
