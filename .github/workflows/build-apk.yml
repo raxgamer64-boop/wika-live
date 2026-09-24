@@ -240,7 +240,12 @@ jobs:
           test -n "$ZEGO_APP_SIGN" || { echo "ERROR: ZEGO_APP_SIGN is missing."; exit 1; }
           flutter clean
           flutter pub get
-          flutter build apk --release
+
+          # Pass the GitHub ZEGO AppSign into the Dart release build.
+          # main.dart reads it with String.fromEnvironment('ZEGO_APP_SIGN').
+          flutter build apk --release \
+            --dart-define="ZEGO_APP_SIGN=$ZEGO_APP_SIGN"
+
           APK="build/app/outputs/flutter-apk/app-release.apk"
           test -s "$APK"
           ls -lh "$APK"
@@ -253,4 +258,3 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
-          
