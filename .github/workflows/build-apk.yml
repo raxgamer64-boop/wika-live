@@ -46,18 +46,11 @@ jobs:
 
           # Use the repository's real root main.dart. Patch the ZEGO API mismatches
           # in-place so the build never depends on a second filename being uploaded.
-          echo '--- CHECKING REPOSITORY INPUT FILES ---'
-          if [ ! -f main.dart ]; then
-            echo 'ERROR: root main.dart is missing.'
-            echo 'Commit/upload the corrected main.dart to the repository root.'
-            exit 1
-          fi
-
+          test -f main.dart || { echo 'ERROR: root main.dart is missing'; exit 1; }
+          test -f wikalive_logo.png || { echo 'ERROR: wikalive_logo.png is missing'; exit 1; }
           cp main.dart app/lib/main.dart
-
           mkdir -p app/assets
-          echo 'main.dart: FOUND'
-          echo 'Logo asset check skipped: no mandatory logo file is required by the workflow.'
+          cp wikalive_logo.png app/assets/wikalive_logo.png
 
           python3 - <<'PYFIX'
           from pathlib import Path
@@ -453,6 +446,8 @@ jobs:
 
           echo '--- FINAL PUBSPEC FLUTTER SECTION ---'
           sed -n '/^flutter:/,/^[^[:space:]]/p' pubspec.yaml | head -20
+          test -f assets/wikalive_logo.png
+          test -f assets/wikalive_logo.png
 
           flutter pub get
 
@@ -597,15 +592,18 @@ jobs:
           set -e
 
           if [ -z "$ZEGO_APP_SIGN" ]; then
-            echo "ERROR: ZEGO_APP_SIGN is missing."
+            echo 'ERROR: ZEGO_APP_SIGN is missing.'
             exit 1
           fi
 
           flutter clean
           flutter pub get
 
-          echo "=========================================="
-          echo "BUILDING WIKALIVE RELEASE APK"
-          echo "=========================================="
-          echo "Flutter: 3.35.4"
-          echo "Kotlin: 2.3.2
+          echo '=========================================='
+          echo 'BUILDING WIKALIVE RELEASE APK'
+          echo '=========================================='
+          echo 'Flutter: 3.35.4'
+          echo 'Kotlin: 2.3.21'
+          echo 'JVM: 17'
+          echo 'Google Sign-In: 7.2.0'
+          
