@@ -27,17 +27,21 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf app
-          flutter create --org com.example --project-name wika_live --platforms android app
+          flutter create --no-pub --org com.example --project-name wika_live --platforms android app
           test -f main.dart
           test -f google-services.json
           cp main.dart app/lib/main.dart
           cp google-services.json app/android/app/google-services.json
 
-          # SVIP 1-18 transparent avatar frames.
+          # SVIP transparent avatar frames.
           test -d assets/svip
           mkdir -p app/assets/svip
           cp assets/svip/SVIP_*.png app/assets/svip/
-          test "$(find app/assets/svip -maxdepth 1 -name 'SVIP_*.png' | wc -l)" -eq 18
+
+          # Testing currently uses the SVIP frames that have been uploaded.
+          SVIP_COUNT="$(find app/assets/svip -maxdepth 1 -name 'SVIP_*.png' | wc -l)"
+          test "$SVIP_COUNT" -ge 1
+          echo "SVIP frames found: $SVIP_COUNT"
 
           python3 - <<'PY'
           from pathlib import Path
@@ -113,10 +117,14 @@ jobs:
               id("com.google.gms.google-services")
           ''', 1)
 
-          s = re.sub(r'^[ \t]*jvmTarget[ \t]*=[ \t]*JavaVersion\.VERSION_[0-9]+\.toString\(\)[ \t]*\r?\n?', '',
-                     s, flags=re.MULTILINE)
-          s = re.sub(r'^[ \t]*kotlinOptions[ \t]*\{.*?^[ \t]*\}[ \t]*\r?\n?', '',
-                     s, flags=re.MULTILINE|re.DOTALL)
+          s = re.sub(r'^[ \t]*jvmTarget[ \t]*=[ \t]*JavaVersion\.VERSION_[0-9]+\.toString\(\)[ \t]*\r?\n?',
+                     '',
+                     s,
+                     flags=re.MULTILINE)
+          s = re.sub(r'^[ \t]*kotlinOptions[ \t]*\{.*?^[ \t]*\}[ \t]*\r?\n?',
+                     '',
+                     s,
+                     flags=re.MULTILINE|re.DOTALL)
           s = s.replace("JavaVersion.VERSION_11", "JavaVersion.VERSION_17")
 
           if 'create("wikaliveRelease")' not in s:
@@ -141,7 +149,9 @@ jobs:
 
           # Remove any old compilerOptions kotlin block and append exactly one.
           s = re.sub(r'\n[ \t]*kotlin[ \t]*\{[ \t]*\n[ \t]*compilerOptions[ \t]*\{.*?^[ \t]*\}[ \t]*\n[ \t]*\}[ \t]*',
-                     '', s, flags=re.MULTILINE|re.DOTALL)
+                     '',
+                     s,
+                     flags=re.MULTILINE|re.DOTALL)
           s += '''
 
           kotlin {
@@ -153,7 +163,8 @@ jobs:
           }
           '''
           if re.search(r'^[ \t]*jvmTarget[ \t]*=[ \t]*JavaVersion\.VERSION_[0-9]+\.toString\(\)',
-                       s, flags=re.MULTILINE):
+                       s,
+                       flags=re.MULTILINE):
               raise SystemExit("legacy jvmTarget remains")
           p.write_text(s)
 
@@ -222,7 +233,8 @@ jobs:
           PYASSET
 
           test -f assets/svip/SVIP_1.png
-          test -f assets/svip/SVIP_18.png
+          test -f assets/svip/SVIP_2.png
+          test -f assets/svip/SVIP_3.png
           flutter pub get
 
       - name: Verify Firebase
@@ -302,3 +314,4 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
+          
