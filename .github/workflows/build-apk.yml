@@ -235,9 +235,8 @@ jobs:
           test -f assets/svip/SVIP_1.png
           test -f assets/svip/SVIP_2.png
           test -f assets/svip/SVIP_3.png
-
-          echo "=== FINAL PUB GET ==="
-          flutter pub get -v
+          test -f .dart_tool/package_config.json
+          echo "SVIP assets registered successfully."
 
       - name: Verify Firebase
         shell: bash
@@ -296,9 +295,11 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$ZEGO_APP_SIGN" || { echo "ERROR: ZEGO_APP_SIGN is missing."; exit 1; }
-          flutter clean
-          flutter pub get
+          test -f .dart_tool/package_config.json
 
+          # Package resolution was completed by the final flutter pub add above.
+          # Do not run flutter clean/pub get here: clean removes package config,
+          # and the extra pub get was the step failing after successful resolution.
           # Pass the GitHub ZEGO AppSign into the Dart release build.
           # main.dart reads it with String.fromEnvironment('ZEGO_APP_SIGN').
           flutter build apk --release \
