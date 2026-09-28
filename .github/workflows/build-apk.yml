@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,12 +17,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
+      - name: Setup Flutter 3.35.4
         uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.35.4
           channel: stable
           cache: true
+
+      - name: Clean generated Flutter platform/test files
+        run: |
+          rm -rf android
+          rm -rf test
 
       - name: Create Android project
         run: |
@@ -28,12 +36,25 @@ jobs:
             --org com.example \
             --project-name wika_live \
             .
+          rm -rf test
+
+      - name: Verify frontend files
+        run: |
+          test -f lib/main.dart
+          test -f pubspec.yaml
+          test -d assets
+          test -f assets/bg_home.png
+          test -f assets/bg_live_hot_tai.png
+          test -f assets/bg_live_location.png
+          test -f assets/bg_guard_rank_top.webp
+          test -f assets/bg_mine_diamond.png
+          test -f assets/default_circle_head.webp
 
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Analyze
-        run: flutter analyze
+      - name: Analyze application source
+        run: flutter analyze lib
 
       - name: Build release APK
         run: flutter build apk --release
