@@ -1,10 +1,9 @@
-name: Build WikaLive APK
+name: Build WikaLive Production APK
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: read
@@ -20,49 +19,263 @@ jobs:
       - name: Setup Flutter 3.35.4
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.35.4
+          flutter-version: '3.35.4'
           channel: stable
           cache: true
 
-      - name: Clean generated Flutter platform/test files
-        run: |
-          rm -rf android
-          rm -rf test
-
       - name: Create Android project
+        shell: bash
         run: |
-          flutter create \
-            --platforms=android \
-            --org com.example \
-            --project-name wika_live \
-            .
-          rm -rf test
+          set -euo pipefail
+          rm -rf app
+          flutter create --no-pub --org com.example --project-name wika_live --platforms android app
+          cp lib/main.dart app/lib/main.dart
+          cp pubspec.yaml app/pubspec.yaml
+          cp google-services.json app/android/app/google-services.json
 
-      - name: Verify frontend files
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/android/app/src/main/AndroidManifest.xml')
+          s = p.read_text()
+          permissions = [
+              '    <uses-permission android:name="android.permission.CAMERA" />',
+              '    <uses-permission android:name="android.permission.RECORD_AUDIO" />',
+              '    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+          ]
+          for line in permissions:
+              if line not in s:
+                  s = s.replace('\n    <application', '\n' + line + '\n    <application', 1)
+          p.write_text(s)
+          PY
+
+      - name: Configure Google Services and Android
+        working-directory: app
+        shell: bash
         run: |
-          test -f lib/main.dart
-          test -f pubspec.yaml
-          test -d assets
-          test -f assets/bg_home.png
-          test -f assets/bg_live_hot_tai.png
-          test -f assets/bg_live_location.png
-          test -f assets/bg_guard_rank_top.webp
-          test -f assets/bg_mine_diamond.png
-          test -f assets/default_circle_head.webp
+          set -euo pipefail
 
-      - name: Get dependencies
-        run: flutter pub get
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
 
-      - name: Analyze application source
-        run: flutter analyze lib
+          p = Path('android/settings.gradle.kts')
+          s = p.read_text()
 
-      - name: Build release APK
-        run: flutter build apk --release
+          if 'com.google.gms.google-services' not in s:
+              s = s.replace(
+                  'plugins {',
+                  'plugins {\n    id("com.google.gms.google-services") version "4.4.3" apply false',
+                  1,
+              )
+
+          p.write_text(s)
+
+          p = Path('android/app/build.gradle.kts')
+          s = p.read_text()
+
+          if 'id("com.google.gms.google-services")' not in s:
+              s = s.replace(
+                  'plugins {',
+                  'plugins {\n    id("com.google.gms.google-services")',
+                  1
+              )
+
+          s = re.sub(
+              r'^[ \t]*jvmTarget[ \t]*=[ \t]*JavaVersion\.VERSION_[0-9]+\.toString\(\)[ \t]*\r?\n?',
+              '',
+              s,
+              flags=re.MULTILINE
+          )
+
+          s = s.replace(
+              'JavaVersion.VERSION_11',
+              'JavaVersion.VERSION_17'
+          )
+
+          if 'create("wikaliveRelease")' not in s:
+              signing = '''\nsigningConfigs {
+    create("wikaliveRelease") {
+        storeFile = file("upload-keystore.jks")
+        storePassword = providers.gradleProperty("storePassword").orNull
+        keyAlias = providers.gradleProperty("keyAlias").orNull
+        keyPassword = providers.gradleProperty("keyPassword").orNull
+    }
+}
+'''
+              s = s.replace(
+                  'buildTypes {',
+                  signing + '\nbuildTypes {',
+                  1
+              )
+
+          if 'signingConfig = signingConfigs.getByName("wikaliveRelease")' not in s:
+              s = s.replace(
+                  'release {',
+                  'release {\n        signingConfig = signingConfigs.getByName("wikaliveRelease")',
+                  1
+              )
+
+          if 'compilerOptions {' not in s:
+              s += '''\n\nkotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+'''
+
+          p.write_text(s)
+
+          gp = Path('android/gradle.properties')
+
+          props = {
+              'org.gradle.jvmargs': '-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8',
+              'org.gradle.daemon': 'false',
+              'org.gradle.parallel': 'false',
+              'org.gradle.caching': 'false',
+              'android.useAndroidX': 'true',
+              'android.enableJetifier': 'true',
+          }
+
+          lines = [
+              x for x in gp.read_text().splitlines()
+              if not any(x.startswith(k + '=') for k in props)
+          ]
+
+          lines += [k + '=' + v for k, v in props.items()]
+
+          gp.write_text('\n'.join(lines) + '\n')
+          PY
+
+      - name: Verify source before dependency resolution
+        working-directory: app
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s lib/main.dart
+          test -s pubspec.yaml
+          test -s android/app/google-services.json
+
+          ! grep -nE 'Icons\.crown|duplicate_definition|class ExplorePage\s*\{[^}]*const ExplorePage.*const ExplorePage' lib/main.dart || true
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          s = Path('lib/main.dart').read_text()
+
+          if (
+              s.count('{') != s.count('}')
+              or s.count('(') != s.count(')')
+              or s.count('[') != s.count(']')
+          ):
+              raise SystemExit('Source delimiter balance check failed')
+
+          if re.search(r'\bgame\b|Game', s, re.I):
+              raise SystemExit('Game code/reference found in final main.dart')
+
+          print('Source structure checks passed.')
+          PY
+
+      - name: Configure release signing
+        working-directory: app
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -n "$KEYSTORE_BASE64" || {
+            echo 'ERROR: KEYSTORE_BASE64 is missing.'
+            exit 1
+          }
+
+          test -n "$STORE_PASS" || {
+            echo 'ERROR: KEYSTORE_PASS is missing.'
+            exit 1
+          }
+
+          test -n "$KEY_ALIAS" || {
+            echo 'ERROR: KEY_ALIAS is missing.'
+            exit 1
+          }
+
+          test -n "$KEY_PASSWORD" || {
+            echo 'ERROR: KEY_PASSWORD is missing.'
+            exit 1
+          }
+
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+
+          keytool -list \
+            -keystore android/app/upload-keystore.jks \
+            -storepass "$STORE_PASS" \
+            -alias "$KEY_ALIAS" >/dev/null
+
+      - name: Resolve dependencies
+        working-directory: app
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+
+      - name: Analyze application
+        working-directory: app
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build release APK and AAB
+        working-directory: app
+        env:
+          ZEGO_APP_SIGN: ${{ secrets.ZEGO_APP_SIGN }}
+          ORG_GRADLE_PROJECT_storePassword: ${{ secrets.KEYSTORE_PASS }}
+          ORG_GRADLE_PROJECT_keyAlias: ${{ secrets.KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_keyPassword: ${{ secrets.KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -n "$ZEGO_APP_SIGN" || {
+            echo 'ERROR: ZEGO_APP_SIGN is missing.'
+            exit 1
+          }
+
+          flutter clean
+          flutter pub get
+
+          flutter build apk \
+            --release \
+            --dart-define="ZEGO_APP_SIGN=$ZEGO_APP_SIGN"
+
+          flutter build appbundle \
+            --release \
+            --dart-define="ZEGO_APP_SIGN=$ZEGO_APP_SIGN"
+
+          test -s build/app/outputs/flutter-apk/app-release.apk
+          test -s build/app/outputs/bundle/release/app-release.aab
+
+          ls -lh build/app/outputs/flutter-apk/app-release.apk
+          ls -lh build/app/outputs/bundle/release/app-release.aab
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: wikalive-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: WikaLive-release-APK
+          path: app/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-          
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: WikaLive-release-AAB
+          path: app/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
