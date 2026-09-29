@@ -1,6 +1,6 @@
-name: wikalive_frontend
+name: wika_live
 publish_to: "none"
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -8,6 +8,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
+  cloud_firestore: ^6.10.0
+  firebase_storage: ^13.6.0
+  image_picker: ^1.2.2
+  google_sign_in: ^7.2.0
+  zego_uikit_prebuilt_live_streaming: ^3.15.6
+  zego_uikit_signaling_plugin: ^2.8.21
 
 flutter:
   uses-material-design: true
